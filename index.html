@@ -908,7 +908,9 @@ function renderResults(){
     </div>
     <div class="row" style="margin-bottom:12px">
       <button class="btn sm pri" data-act="exportCSV" ${recs.length ? '' : 'disabled'}>Save as CSV (Excel)</button>
-      <button class="btn sm" data-act="printReport" ${recs.length ? '' : 'disabled'}>Print / PDF report</button>
+      <button class="btn sm" data-act="pdfMenu" data-kind="papers" ${recs.length ? '' : 'disabled'}>Checked papers (PDF)</button>
+      <button class="btn sm" data-act="pdfMenu" data-kind="analysis" ${recs.length && q.key.some(Boolean) ? '' : 'disabled'}>Item analysis (PDF)</button>
+      <button class="btn sm" data-act="printReport" ${recs.length ? '' : 'disabled'}>Print report</button>
       <select id="resSort" style="width:auto;margin-left:auto;padding:6px 8px;font-size:13px">
         ${[['sid', 'Sort: ID'], ['name', 'Sort: Name'], ['score', 'Sort: Score'], ['at', 'Sort: Latest']].map(([k, t]) => `<option value="${k}" ${resSort === k ? 'selected' : ''}>${t}</option>`).join('')}
       </select>
@@ -937,9 +939,12 @@ function itemStats(q, recs){
   });
 }
 function itemAnalysisHTML(q, recs){
-  const st = itemStats(q, recs).filter(s => s.key);
-  return `<h2 style="margin-top:18px">Item analysis</h2><div class="card" style="padding:4px 8px"><table class="t"><thead><tr><th>#</th><th>Key</th><th>% correct</th><th>Most picked wrong</th></tr></thead><tbody>
-    ${st.map(s => { const wrongs = Object.entries(s.cnt).filter(([l]) => !s.key.includes(l)).sort((a, b) => b[1] - a[1]); return `<tr><td>${s.i + 1}</td><td><b>${s.key}</b></td><td><div class="row" style="flex-wrap:nowrap"><div class="bar" style="flex:1"><i class="${s.pct < 50 ? 'lo' : ''}" style="width:${s.pct}%"></i></div><span class="small" style="width:34px;text-align:right">${s.pct.toFixed(0)}%</span></div></td><td class="small">${wrongs.length ? `${wrongs[0][0]} (${wrongs[0][1]})` : '—'}${s.blank ? ` · blank ${s.blank}` : ''}</td></tr>`; }).join('')}
+  const A = analysisData(q, recs), st = A.items;
+  const chip = r => r === '—' ? '<span class="muted">—</span>' : `<span class="chip" style="background:transparent;border:1px solid currentColor;color:${remarkColor(r)}">${r}</span>`;
+  return `<div class="spread" style="margin-top:18px"><h2 style="margin:0">Item analysis</h2><button class="btn sm" data-act="pdfMenu" data-kind="analysis">PDF</button></div>
+    <div class="small muted" style="margin:4px 0 8px">D = discrimination (upper vs lower 27%)${A.n < 4 ? ' — needs at least 4 papers' : ''}${A.kr20 !== null ? ` · KR-20 reliability ${A.kr20.toFixed(2)}` : ''}</div>
+    <div class="card" style="padding:4px 8px"><table class="t"><thead><tr><th>#</th><th>Key</th><th>% correct</th><th class="num">D</th><th>Remark</th></tr></thead><tbody>
+    ${st.map(s => { const wrongs = Object.entries(s.cnt).filter(([l]) => !s.key.includes(l)).sort((a, b) => b[1] - a[1]); return `<tr><td>${s.i + 1}</td><td><b>${s.key}</b></td><td><div class="row" style="flex-wrap:nowrap"><div class="bar" style="flex:1"><i class="${s.pct < 50 ? 'lo' : ''}" style="width:${s.pct}%"></i></div><span class="small" style="width:34px;text-align:right">${s.pct.toFixed(0)}%</span></div><div class="small muted">${wrongs.length ? `most wrong: ${wrongs[0][0]} (${wrongs[0][1]})` : 'no wrong picks'}${s.blank ? ` · blank ${s.blank}` : ''}</div></td><td class="num">${s.d === null ? '–' : s.d.toFixed(2)}</td><td>${chip(s.remark)}</td></tr>`; }).join('')}
     </tbody></table></div>`;
 }
 function openRec(id){
@@ -953,7 +958,7 @@ function openRec(id){
     </div>
     <div class="small muted" style="margin-bottom:8px">${esc(q.name)} · scanned ${fmtTime(r.at)} · fix a misread by changing the letter</div>
     <div class="agrid" id="agrid"></div>
-    <div class="row" style="margin-top:14px"><button class="btn danger" data-act="delRec" data-id="${r.id}">Delete this result</button></div>`);
+    <div class="row" style="margin-top:14px"><button class="btn" data-act="pdfMenu" data-kind="papers" data-id="${r.id}">Download this paper (PDF)</button><button class="btn danger" data-act="delRec" data-id="${r.id}" style="margin-left:auto">Delete this result</button></div>`);
   drawAnsGrid();
   $('#rSid').onchange = e => { r.sid = e.target.value.trim(); persist(); };
   $('#rName').onchange = e => { r.name = e.target.value.trim(); persist(); };
@@ -1018,6 +1023,372 @@ function doPrintReport(){
   closeModal(); printHTML(h);
 }
 
+/* =================== PDF export (built in — no libraries, works offline) =================== */
+const HELV_W = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,278,278,355,556,556,889,667,191,333,333,389,584,278,333,278,278,556,556,556,556,556,556,556,556,556,556,278,278,584,584,584,556,1015,667,667,722,722,667,611,778,722,278,500,667,556,833,722,778,667,778,722,667,611,722,667,944,667,667,611,278,278,278,469,556,333,556,556,500,556,556,278,556,556,222,222,500,222,833,556,556,556,556,333,500,278,556,500,722,500,500,500,334,260,334,584,556,556,556,222,556,333,1000,556,556,333,1000,667,333,1000,556,611,556,556,222,222,333,333,350,556,1000,333,1000,500,333,944,556,500,667,278,333,556,556,556,556,260,556,333,737,370,556,584,333,737,333,400,584,333,333,333,556,537,278,333,333,365,556,834,834,834,611,667,667,667,667,667,667,1000,722,667,667,667,667,278,278,278,278,722,722,778,778,778,778,778,584,778,722,722,722,722,667,667,611,556,556,556,556,556,556,889,500,556,556,556,556,278,278,278,278,556,556,556,556,556,556,556,584,611,556,556,556,556,500,556,500];
+const HELVB_W = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,278,333,474,556,556,889,722,238,333,333,389,584,278,333,278,278,556,556,556,556,556,556,556,556,556,556,333,333,584,584,584,611,975,722,722,722,722,667,611,778,722,278,556,722,611,833,722,778,667,778,722,667,611,722,667,944,667,667,611,333,278,333,584,556,333,556,611,556,611,556,333,611,611,278,278,556,278,889,611,611,611,611,389,556,333,611,556,778,556,556,500,389,280,389,584,556,556,556,278,556,500,1000,556,556,333,1000,667,333,1000,556,611,556,556,278,278,500,500,350,556,1000,333,1000,556,333,944,556,500,667,278,333,556,556,556,556,280,556,333,737,370,556,584,333,737,333,400,584,333,333,333,611,556,278,333,333,365,556,834,834,834,611,722,722,722,722,722,722,1000,722,667,667,667,667,278,278,278,278,722,722,778,778,778,778,778,584,778,722,722,722,722,667,667,611,556,556,556,556,556,556,889,556,556,556,556,556,278,278,278,278,611,611,611,611,611,611,611,584,611,611,611,611,611,556,611,556];
+const MM = 72 / 25.4;
+const PAPER = {a4: [210, 297, 'A4'], letter: [215.9, 279.4, 'Letter / short bond (8.5×11)'], long: [215.9, 330.2, 'Long bond (8.5×13)']};
+const WIN_MAP = {0x20AC: 128, 0x201A: 130, 0x192: 131, 0x201E: 132, 0x2026: 133, 0x2020: 134, 0x2021: 135, 0x2C6: 136, 0x2030: 137, 0x160: 138, 0x2039: 139, 0x152: 140, 0x17D: 142,
+  0x2018: 145, 0x2019: 146, 0x201C: 147, 0x201D: 148, 0x2022: 149, 0x2013: 150, 0x2014: 151, 0x2DC: 152, 0x2122: 153, 0x161: 154, 0x203A: 155, 0x153: 156, 0x17E: 158, 0x178: 159};
+const C_INK = '#1c2220', C_GRAY = '#6b7280', C_GREEN = '#1d8048', C_RED = '#c0392b', C_ORANGE = '#a86a12', C_PEN = '#1a3d8f';
+function winAnsi(s){
+  let o = '';
+  for (const ch of String(s ?? '').normalize('NFC')){
+    const c = ch.codePointAt(0);
+    let b = (c >= 32 && c < 127) || (c >= 160 && c < 256) ? c : WIN_MAP[c];
+    if (b === undefined) b = c === 9 || c === 10 ? 32 : 63;
+    o += String.fromCharCode(b);
+  }
+  return o;
+}
+const pdfEsc = s => winAnsi(s).replace(/[\\()]/g, m => '\\' + m);
+const pn = v => String(Math.round(v * 100) / 100);
+async function deflate(u8){
+  if (typeof CompressionStream === 'undefined') return null;
+  try{ const s = new Blob([u8]).stream().pipeThrough(new CompressionStream('deflate')); return new Uint8Array(await new Response(s).arrayBuffer()); }
+  catch(e){ return null; }
+}
+class PDFDoc {
+  constructor(paper){ const p = PAPER[paper] || PAPER.a4; this.W = p[0]; this.H = p[1]; this.pages = []; this.c = null; }
+  page(){ this.c = ['1 J 1 j']; this.pages.push(this.c); return this; }
+  X(x){ return pn(x * MM); }
+  Y(y){ return pn((this.H - y) * MM); }
+  P(x, y){ return this.X(x) + ' ' + this.Y(y); }
+  rgb(hex){ const v = parseInt(hex.slice(1), 16); return [v >> 16 & 255, v >> 8 & 255, v & 255].map(x => pn(x / 255)).join(' '); }
+  st({fill, stroke, lw = 0.25, dash} = {}){
+    const o = [];
+    if (fill) o.push(this.rgb(fill) + ' rg');
+    if (stroke) o.push(this.rgb(stroke) + ' RG', pn(lw * MM) + ' w', dash ? `[${dash.map(d => pn(d * MM)).join(' ')}] 0 d` : '[] 0 d');
+    return {pre: o.join(' '), op: fill && stroke ? 'B' : fill ? 'f' : 'S'};
+  }
+  line(x1, y1, x2, y2, o = {}){ const s = this.st({stroke: '#000000', ...o}); this.c.push(`${s.pre} ${this.P(x1, y1)} m ${this.P(x2, y2)} l S`); }
+  poly(pts, o = {}, close = false){ const s = this.st(o); this.c.push(`${s.pre} ${pts.map((p, i) => this.P(p[0], p[1]) + (i ? ' l' : ' m')).join(' ')}${close ? ' h' : ''} ${s.op}`); }
+  rect(x, y, w, h, o = {}){ const s = this.st(o); this.c.push(`${s.pre} ${this.X(x)} ${this.Y(y + h)} ${pn(w * MM)} ${pn(h * MM)} re ${s.op}`); }
+  circle(x, y, r, o = {}){
+    const s = this.st(o), k = 0.5523 * r, P = (a, b) => this.P(a, b);
+    this.c.push(`${s.pre} ${P(x + r, y)} m ${P(x + r, y + k)} ${P(x + k, y + r)} ${P(x, y + r)} c ${P(x - k, y + r)} ${P(x - r, y + k)} ${P(x - r, y)} c ${P(x - r, y - k)} ${P(x - k, y - r)} ${P(x, y - r)} c ${P(x + k, y - r)} ${P(x + r, y - k)} ${P(x + r, y)} c h ${s.op}`);
+  }
+  tw(str, size, bold){ const W = bold ? HELVB_W : HELV_W; let s = 0; for (const ch of winAnsi(str)) s += W[ch.charCodeAt(0)] || 556; return s * size / 1000 / MM; }
+  fit(str, maxW, size, bold){
+    str = String(str ?? '');
+    if (this.tw(str, size, bold) <= maxW) return str;
+    while (str.length > 1 && this.tw(str + '…', size, bold) > maxW) str = str.slice(0, -1);
+    return str + '…';
+  }
+  text(str, x, y, {size = 9, bold = false, color = C_INK, align = 'left', maxW} = {}){
+    str = String(str ?? ''); if (maxW) str = this.fit(str, maxW, size, bold);
+    if (!str) return;
+    const w = this.tw(str, size, bold);
+    if (align === 'right') x -= w; else if (align === 'center') x -= w / 2;
+    this.c.push(`BT ${this.rgb(color)} rg /${bold ? 'F2' : 'F1'} ${pn(size)} Tf ${this.P(x, y)} Td (${pdfEsc(str)}) Tj ET`);
+  }
+  check(x, y, s = 1, color = C_GREEN){ this.poly([[x - 1.3 * s, y + 0.1 * s], [x - 0.35 * s, y + 1.1 * s], [x + 1.4 * s, y - 1.3 * s]], {stroke: color, lw: 0.5 * s}); }
+  cross(x, y, s = 1, color = C_RED){ const d = 1.1 * s; this.line(x - d, y - d, x + d, y + d, {stroke: color, lw: 0.5 * s}); this.line(x - d, y + d, x + d, y - d, {stroke: color, lw: 0.5 * s}); }
+  async bytes(title){
+    const enc = s => { const u = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) u[i] = s.charCodeAt(i) & 255; return u; };
+    const parts = [], offs = []; let len = 0;
+    const push = u => { parts.push(u); len += u.length; };
+    const obj = (num, body) => { offs[num] = len; push(enc(`${num} 0 obj\n${body}\nendobj\n`)); };
+    push(enc('%PDF-1.4\n%\xE2\xE3\xCF\xD3\n'));
+    const nP = this.pages.length, W = pn(this.W * MM), H = pn(this.H * MM);
+    const d = new Date(), z2 = v => String(v).padStart(2, '0');
+    const date = `${d.getFullYear()}${z2(d.getMonth() + 1)}${z2(d.getDate())}${z2(d.getHours())}${z2(d.getMinutes())}${z2(d.getSeconds())}`;
+    obj(1, '<< /Type /Catalog /Pages 2 0 R >>');
+    obj(2, `<< /Type /Pages /Kids [${this.pages.map((_, i) => `${6 + 2 * i} 0 R`).join(' ')}] /Count ${nP} >>`);
+    obj(3, '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>');
+    obj(4, '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>');
+    obj(5, `<< /Title (${pdfEsc(title)}) /Producer (BubbleCheck) /CreationDate (D:${date}) >>`);
+    for (let i = 0; i < nP; i++){
+      obj(6 + 2 * i, `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${W} ${H}] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents ${7 + 2 * i} 0 R >>`);
+      const raw = enc(this.pages[i].join('\n')), zz = await deflate(raw), data = zz || raw;
+      offs[7 + 2 * i] = len;
+      push(enc(`${7 + 2 * i} 0 obj\n<< /Length ${data.length}${zz ? ' /Filter /FlateDecode' : ''} >>\nstream\n`)); push(data); push(enc('\nendstream\nendobj\n'));
+    }
+    const nObj = 6 + 2 * nP, xref = len;
+    let x = `xref\n0 ${nObj}\n0000000000 65535 f \n`;
+    for (let i = 1; i < nObj; i++) x += String(offs[i]).padStart(10, '0') + ' 00000 n \n';
+    push(enc(x + `trailer\n<< /Size ${nObj} /Root 1 0 R /Info 5 0 R >>\nstartxref\n${xref}\n%%EOF\n`));
+    const out = new Uint8Array(len); let p = 0;
+    for (const u of parts){ out.set(u, p); p += u.length; }
+    return out;
+  }
+}
+/* generic table with header repeated on each page */
+function pdfTable(doc, cols, rows, {x, y, rowH = 5.6, size = 8.5, bottom, top = 15}){
+  const totalW = cols.reduce((s, c) => s + c.w, 0);
+  const tx = (c, cx) => c.align === 'right' ? cx + c.w - 1.4 : c.align === 'center' ? cx + c.w / 2 : cx + 1.4;
+  const header = () => {
+    doc.rect(x, y, totalW, rowH + 0.8, {fill: '#e3eee7'});
+    let cx = x; cols.forEach(c => { doc.text(c.t, tx(c, cx), y + rowH * 0.74 + 0.4, {size: size - 0.6, bold: true, align: c.align || 'left', maxW: c.w - 1.5}); cx += c.w; });
+    y += rowH + 0.8;
+  };
+  header();
+  rows.forEach((row, ri) => {
+    if (y + rowH > bottom){ doc.page(); y = top; header(); }
+    if (ri % 2) doc.rect(x, y, totalW, rowH, {fill: '#f5f5f1'});
+    let cx = x;
+    row.forEach((cell, ci) => {
+      const c = cols[ci], o = cell !== null && typeof cell === 'object' ? cell : {t: cell};
+      if (o.fill) doc.rect(cx + 0.3, y + 0.3, c.w - 0.6, rowH - 0.6, {fill: o.fill});
+      doc.text(o.t, tx(c, cx), y + rowH * 0.7, {size, bold: o.bold, color: o.color || C_INK, align: c.align || 'left', maxW: c.w - 2});
+      cx += c.w;
+    });
+    y += rowH;
+  });
+  doc.line(x, y, x + totalW, y, {stroke: '#bbbbbb', lw: 0.2});
+  return y;
+}
+function scaleCols(cols, w){ const s = w / cols.reduce((a, c) => a + c.w, 0); return cols.map(c => ({...c, w: c.w * s})); }
+function statBoxes(doc, x, y, w, items){
+  const gap = 2, bw = (w - gap * (items.length - 1)) / items.length;
+  items.forEach(([label, val], i) => {
+    const bx = x + i * (bw + gap);
+    doc.rect(bx, y, bw, 13, {stroke: '#cfd8d2', lw: 0.25, fill: '#f7faf8'});
+    doc.text(label, bx + bw / 2, y + 4.3, {size: 6.8, color: C_GRAY, align: 'center', maxW: bw - 2});
+    doc.text(val, bx + bw / 2, y + 10.2, {size: 11.5, bold: true, align: 'center', maxW: bw - 2});
+  });
+}
+function classStats(q, recs){
+  const tots = recs.map(r => scoreOf(q, r.answers).s), n = tots.length, t = q.key.filter(Boolean).length;
+  const m = n ? mean(tots) : 0, v = n > 1 ? tots.reduce((s, x) => s + (x - m) ** 2, 0) / (n - 1) : 0;
+  const so = [...tots].sort((a, b) => a - b), med = n ? (n % 2 ? so[n >> 1] : (so[n / 2 - 1] + so[n / 2]) / 2) : 0;
+  return {tots, n, t, mean: m, sd: Math.sqrt(v), v, median: med, hi: n ? so[n - 1] : 0, lo: n ? so[0] : 0};
+}
+const f1 = v => (Math.round(v * 10) / 10).toString();
+function scoreListPages(doc, q, recs, title){
+  doc.page();
+  const M = 14, W = doc.W - 2 * M, cs = classStats(q, recs);
+  let y = 17;
+  doc.text(title, M, y, {size: 15, bold: true}); y += 6.5;
+  doc.text(q.name, M, y, {size: 11, maxW: W}); y += 5;
+  doc.text(`${fmtLabel(q)}  ·  ${recs.length} paper${recs.length === 1 ? '' : 's'}  ·  created ${new Date().toLocaleString()}`, M, y, {size: 8, color: C_GRAY, maxW: W}); y += 6;
+  statBoxes(doc, M, y, W, [['Papers', String(cs.n)], ['Mean', cs.n ? `${f1(cs.mean)} / ${cs.t}` : '–'], ['Median', cs.n ? f1(cs.median) : '–'], ['Std. dev.', cs.n > 1 ? cs.sd.toFixed(2) : '–'], ['Highest', cs.n ? String(cs.hi) : '–'], ['Lowest', cs.n ? String(cs.lo) : '–']]);
+  y += 19;
+  const cols = scaleCols([{t: '#', w: 9, align: 'right'}, {t: 'Student ID', w: 30}, {t: 'Name', w: 64}, {t: 'Correct', w: 15, align: 'right'}, {t: 'Wrong', w: 14, align: 'right'}, {t: 'Blank', w: 13, align: 'right'}, {t: 'Score', w: 19, align: 'right'}, {t: '%', w: 14, align: 'right'}], W);
+  const rows = recs.map((r, i) => { const s = scoreOf(q, r.answers); return [String(i + 1), r.sid || '—', studentName(r), String(s.s), String(s.wrong + s.multi), String(s.blank), {t: s.t ? `${s.s} / ${s.t}` : '—', bold: true}, s.t ? s.pct.toFixed(1) : '—']; });
+  pdfTable(doc, cols, rows, {x: M, y, bottom: doc.H - 14});
+}
+function sheetBox(L){
+  const ys = [];
+  if (L.id.length) ys.push(L.idLabelY - 2.6, L.id[0][9].y + BR);
+  L.lines.forEach(l => ys.push(l.y - 2.6, l.y + 1));
+  L.q.forEach(row => ys.push(row[0].y - BR, row[0].y + BR));
+  const minY = Math.min(...ys) - 3, maxY = Math.max(...ys) + 3;
+  return {minY, maxY, h: maxY - minY};
+}
+const PAPER_HEAD = 16;
+function drawPaper(doc, q, r, ox, top, L, box){
+  const sc = scoreOf(q, r.answers), right = ox + 170, nm = studentName(r);
+  const px = x => ox + x, py = y => top + PAPER_HEAD + (y - box.minY);
+  doc.text(q.name, ox - 2, top + 4.2, {size: 9.5, bold: true, color: C_GRAY, maxW: 125});
+  doc.text(nm || 'No name', ox - 2, top + 9.4, {size: 12, bold: true, maxW: 125, color: nm ? C_INK : C_GRAY});
+  doc.text(`ID ${r.sid || '—'}   ·   Correct ${sc.s}  ·  Wrong ${sc.wrong}  ·  Blank ${sc.blank}${sc.multi ? `  ·  Multiple ${sc.multi}` : ''}   ·   ${fmtTime(r.at)}`, ox - 2, top + 13.6, {size: 7.6, color: C_GRAY, maxW: 132});
+  doc.text(sc.t ? `${sc.s}/${sc.t}` : '—', right + 2, top + 9.4, {size: 20, bold: true, align: 'right', color: !sc.t ? C_GRAY : sc.pct >= 50 ? C_GREEN : C_RED});
+  doc.text(sc.t ? sc.pct.toFixed(1) + '%' : 'no answer key', right + 2, top + 13.6, {size: 8, color: C_GRAY, align: 'right'});
+  doc.rect(ox - 3, top + PAPER_HEAD, 176, box.h, {stroke: '#c9cfcb', lw: 0.3});
+  if (L.id.length){
+    doc.text('STUDENT ID', px(L.idX0), py(L.idLabelY), {size: 7.2, bold: true});
+    L.id.forEach((col, c) => {
+      const d = (r.sid || '')[c];
+      doc.rect(px(col[0].x - 2.6), py(L.idBoxY), 5.2, 5.5, {stroke: '#000000', lw: 0.25});
+      if (d) doc.text(d, px(col[0].x), py(L.idBoxY + 4.2), {size: 9, bold: true, align: 'center', color: d === '?' ? C_RED : C_PEN});
+      col.forEach((b, k) => {
+        const on = d === String(k);
+        doc.circle(px(b.x), py(b.y), BR, on ? {fill: C_INK} : {stroke: '#7a7a7a', lw: 0.2});
+        doc.text(String(k), px(b.x), py(b.y + 0.85), {size: 6.3, align: 'center', bold: on, color: on ? '#ffffff' : '#9a9a9a'});
+      });
+    });
+  }
+  const vals = {Name: nm, Section: '', Date: new Date(r.at).toLocaleDateString(), Score: sc.t ? `${sc.s} / ${sc.t}` : ''};
+  L.lines.forEach(ln => {
+    const lx = ln.x + ln.t.length * 1.75 + 2;
+    doc.text(ln.t, px(ln.x), py(ln.y), {size: 8.2});
+    doc.line(px(lx), py(ln.y + 0.6), px(ln.x2), py(ln.y + 0.6), {stroke: '#000000', lw: 0.2});
+    if (vals[ln.t]) doc.text(vals[ln.t], px(lx + 1.5), py(ln.y - 0.5), {size: 9.5, bold: ln.t === 'Score', color: C_PEN, maxW: ln.x2 - lx - 2});
+  });
+  L.q.forEach((row, i) => {
+    const a = r.answers[i] || '', k = q.key[i] || '', y = py(row[0].y), ok = isRight(q, i, a);
+    doc.text(String(i + 1), px(L.qlab[i].x), y + 1, {size: 7.9, bold: true, align: 'right'});
+    row.forEach((b, j) => {
+      const Lt = LETTERS[j], mine = a === Lt, x = px(b.x);
+      if (mine) doc.circle(x, y, BR, {fill: !k ? C_INK : ok ? C_GREEN : C_RED});
+      else doc.circle(x, y, BR, {stroke: '#7a7a7a', lw: 0.2});
+      doc.text(Lt, x, y + 0.85, {size: 6.3, align: 'center', bold: mine, color: mine ? '#ffffff' : '#9a9a9a'});
+      if (k && !ok && k.includes(Lt)) doc.circle(x, y, BR + 0.6, {stroke: C_GREEN, lw: 0.45});
+    });
+    const last = row[row.length - 1];
+    if (a === '*') doc.line(px(row[0].x - BR - 0.6), y, px(last.x + BR + 0.6), y, {stroke: C_RED, lw: 0.45});
+    if (k){ const mx = px(last.x + BR + 2.7); ok ? doc.check(mx, y) : doc.cross(mx, y); }
+  });
+}
+function paperLegend(doc, y){
+  const items = [
+    [x => doc.circle(x, y - 1, 1.6, {fill: C_GREEN}), 'correct answer chosen'],
+    [x => doc.circle(x, y - 1, 1.6, {fill: C_RED}), 'wrong answer chosen'],
+    [x => doc.circle(x, y - 1, 2.1, {stroke: C_GREEN, lw: 0.45}), 'the right answer'],
+    [x => doc.line(x - 2, y - 1, x + 2, y - 1, {stroke: C_RED, lw: 0.45}), 'more than one bubble marked'],
+    [x => { doc.check(x - 1.3, y - 1, 0.8); doc.cross(x + 1.6, y - 1, 0.8); }, 'item score']];
+  const sz = 7, widths = items.map(([, t]) => 6 + doc.tw(t, sz) + 5), total = widths.reduce((a, b) => a + b, 0);
+  let x = (doc.W - total) / 2;
+  items.forEach(([draw, t], i) => { draw(x + 2); doc.text(t, x + 5, y, {size: sz, color: C_GRAY}); x += widths[i]; });
+}
+async function makePapersPDF(q, recs, {paper, summary}){
+  const doc = new PDFDoc(paper), ox = (doc.W - 170) / 2, L = layout(q), box = sheetBox(L), blockH = PAPER_HEAD + box.h;
+  if (summary) scoreListPages(doc, q, recs, 'Checked papers');
+  const per = doc.H - 26 >= 2 * blockH + 7 ? 2 : 1, paperPages = new Set();
+  recs.forEach((r, i) => {
+    const slot = i % per;
+    if (!slot){ doc.page(); paperPages.add(doc.pages.length - 1); }
+    const top = 10 + slot * (blockH + 7);
+    if (slot) doc.line(ox - 3, top - 3.5, ox + 173, top - 3.5, {stroke: '#b5b5b5', lw: 0.2, dash: [1.5, 1.2]});
+    drawPaper(doc, q, r, ox, top, L, box);
+  });
+  finishPages(doc, q, i => paperPages.has(i) ? () => paperLegend(doc, doc.H - 11) : null);
+  return {bytes: await doc.bytes(q.name + ' – checked papers'), pages: doc.pages.length};
+}
+function finishPages(doc, q, extra){
+  const N = doc.pages.length;
+  doc.pages.forEach((pg, i) => {
+    doc.c = pg;
+    const fx = extra && extra(i); if (fx) fx();
+    doc.text(`BubbleCheck  ·  ${q.name}`, 12, doc.H - 5.5, {size: 6.8, color: '#9a9a9a', maxW: doc.W - 60});
+    doc.text(`Page ${i + 1} of ${N}`, doc.W - 12, doc.H - 5.5, {size: 6.8, color: '#9a9a9a', align: 'right'});
+  });
+}
+/* item analysis numbers */
+const pLabel = p => p >= 0.81 ? 'Very easy' : p >= 0.61 ? 'Easy' : p >= 0.41 ? 'Average' : p >= 0.21 ? 'Difficult' : 'Very difficult';
+const dLabel = d => d === null ? '—' : d >= 0.40 ? 'Very good' : d >= 0.30 ? 'Good' : d >= 0.20 ? 'Fair' : d >= 0 ? 'Poor' : 'Negative';
+function remarkOf(p, d){
+  if (d === null) return '—';
+  if (d < 0) return 'Reject';
+  const a = p >= 0.21 && p <= 0.80, b = d >= 0.20;
+  return a && b ? 'Retain' : a || b ? 'Revise' : 'Reject';
+}
+function analysisData(q, recs){
+  const n = recs.length, tots = recs.map(r => scoreOf(q, r.answers).s);
+  const g = Math.max(1, Math.round(n * 0.27)), order = tots.map((_, i) => i).sort((a, b) => tots[b] - tots[a]);
+  const U = new Set(order.slice(0, g)), Lo = new Set(order.slice(n - g));
+  const items = itemStats(q, recs).filter(s => s.key).map(s => {
+    let ru = 0, rl = 0;
+    recs.forEach((r, ri) => { if (isRight(q, s.i, r.answers[s.i] || '')){ if (U.has(ri)) ru++; if (Lo.has(ri)) rl++; } });
+    const p = n ? s.ok / n : 0, d = n >= 4 ? (ru - rl) / g : null;
+    return {...s, p, d, ru, rl, remark: remarkOf(p, d)};
+  });
+  const cs = classStats(q, recs), k = items.length;
+  const kr20 = k > 1 && n > 1 && cs.v > 0 ? (k / (k - 1)) * (1 - items.reduce((a, it) => a + it.p * (1 - it.p), 0) / cs.v) : null;
+  return {items, g, n, cs, kr20};
+}
+const remarkColor = r => r === 'Retain' ? C_GREEN : r === 'Revise' ? C_ORANGE : r === 'Reject' ? C_RED : C_GRAY;
+function drawHistogram(doc, x, y, w, h, tots, t){
+  doc.text('Score distribution', x, y, {size: 9.5, bold: true});
+  y += 3;
+  const maxS = Math.max(t, ...tots, 1); let bw = 1;
+  while ((maxS + 1) / bw > 26) bw++;
+  const nb = Math.floor(maxS / bw) + 1, counts = Array(nb).fill(0);
+  tots.forEach(s => counts[Math.floor(s / bw)]++);
+  const cmax = Math.max(1, ...counts), gh = h - 9, base = y + gh, slot = w / nb, barW = Math.min(slot * 0.74, 9);
+  doc.rect(x, y, w, gh, {fill: '#fafbfa'});
+  doc.line(x, base, x + w, base, {stroke: '#888888', lw: 0.25});
+  const step = Math.ceil(String(maxS).length * 1.6 / slot + 0.0001);
+  counts.forEach((c, i) => {
+    const cx = x + slot * i + slot / 2, bh = c / cmax * (gh - 5);
+    if (c) { doc.rect(cx - barW / 2, base - bh, barW, bh, {fill: '#2f8a5b'}); doc.text(String(c), cx, base - bh - 1, {size: 6.5, align: 'center', color: C_INK}); }
+    if (i % Math.max(1, step) === 0) doc.text(bw === 1 ? String(i) : `${i * bw}–${i * bw + bw - 1}`, cx, base + 3.4, {size: 6.2, align: 'center', color: C_GRAY});
+  });
+  doc.text(`Score (out of ${t})  ·  bar = number of papers`, x + w, base + 7.4, {size: 6.5, color: C_GRAY, align: 'right'});
+  return base + 9;
+}
+async function makeAnalysisPDF(q, recs, {paper}){
+  const doc = new PDFDoc(paper), M = 12, W = doc.W - 2 * M, A = analysisData(q, recs), cs = A.cs, bottom = doc.H - 14;
+  doc.page();
+  let y = 17;
+  doc.text('Item Analysis', M, y, {size: 16, bold: true}); y += 6.5;
+  doc.text(q.name, M, y, {size: 11, maxW: W}); y += 5;
+  doc.text(`${fmtLabel(q)}  ·  ${A.items.length} keyed items  ·  ${A.n} paper${A.n === 1 ? '' : 's'}  ·  created ${new Date().toLocaleString()}`, M, y, {size: 8, color: C_GRAY, maxW: W}); y += 5;
+  statBoxes(doc, M, y, W, [['Papers', String(A.n)], ['Mean', `${f1(cs.mean)} / ${cs.t}`], ['Median', f1(cs.median)], ['Std. dev.', A.n > 1 ? cs.sd.toFixed(2) : '–'], ['Highest', String(cs.hi)], ['Lowest', String(cs.lo)], ['Reliability KR-20', A.kr20 === null ? '–' : A.kr20.toFixed(2)]]);
+  y += 21;
+  y = drawHistogram(doc, M, y, W, 40, cs.tots, cs.t) + 3;
+  doc.text(A.n >= 4 ? `Upper and lower groups = top and bottom 27% of papers by total score (${A.g} papers each).  p = proportion who got the item right.  D = (upper right - lower right) ÷ ${A.g}.`
+    : 'Discrimination needs at least 4 papers, so D and remarks are left blank.', M, y, {size: 7.2, color: C_GRAY, maxW: W});
+  y += 4;
+  const opts = LETTERS.slice(0, q.choices).split('');
+  const cols = scaleCols([{t: 'Item', w: 11, align: 'center'}, {t: 'Key', w: 10, align: 'center'}, ...opts.map(l => ({t: l, w: 10, align: 'center'})), {t: 'Blank', w: 11, align: 'center'}, {t: '2+', w: 9, align: 'center'},
+    {t: 'p', w: 11, align: 'right'}, {t: 'Difficulty', w: 22}, {t: 'D', w: 12, align: 'right'}, {t: 'Discrimination', w: 24}, {t: 'Remark', w: 17}], W);
+  const rows = A.items.map(it => [
+    {t: String(it.i + 1), bold: true}, {t: it.key, bold: true, color: C_GREEN},
+    ...opts.map(l => it.key.includes(l) ? {t: String(it.cnt[l] || 0), bold: true, fill: '#d9eedf'} : {t: String(it.cnt[l] || 0), color: (it.cnt[l] || 0) ? C_INK : '#a0a0a0'}),
+    {t: String(it.blank), color: it.blank ? C_INK : '#a0a0a0'}, {t: String(it.multi), color: it.multi ? C_INK : '#a0a0a0'},
+    it.p.toFixed(2), pLabel(it.p), it.d === null ? '—' : it.d.toFixed(2), dLabel(it.d), {t: it.remark, bold: true, color: remarkColor(it.remark)}]);
+  y = pdfTable(doc, cols, rows, {x: M, y, bottom, size: 8.2, rowH: 5.3});
+  // summary + legend
+  const by = r => A.items.filter(it => it.remark === r).map(it => it.i + 1);
+  const legend = [
+    ['Difficulty (p):', '0.81–1.00 very easy · 0.61–0.80 easy · 0.41–0.60 average · 0.21–0.40 difficult · 0.00–0.20 very difficult'],
+    ['Discrimination (D):', '0.40 and up very good · 0.30–0.39 good · 0.20–0.29 fair · 0.00–0.19 poor · below 0 negative (check the key)'],
+    ['Remark:', 'Retain = p is 0.21–0.80 and D is 0.20 or more · Revise = only one of the two is met · Reject = neither is met, or D is negative'],
+    ['Options:', 'counts per choice; the shaded cell is the key. A wrong option nobody picked is not working as a distractor.']];
+  const needed = 12 + legend.length * 4.6 + 8;
+  if (y + needed > bottom){ doc.page(); y = 15; } else y += 6;
+  const sumLine = (label, list, color) => {
+    doc.text(label, M, y, {size: 8.5, bold: true, color});
+    doc.text(list.length ? `${list.length} item${list.length === 1 ? '' : 's'}${label === 'Retain' ? '' : ': ' + list.join(', ')}` : 'none', M + 15, y, {size: 8.5, maxW: W - 15});
+    y += 4.6;
+  };
+  if (A.n >= 4){ sumLine('Retain', by('Retain'), C_GREEN); sumLine('Revise', by('Revise'), C_ORANGE); sumLine('Reject', by('Reject'), C_RED); y += 2; }
+  legend.forEach(([a, b]) => { doc.text(a, M, y, {size: 7.2, bold: true, color: C_GRAY}); doc.text(b, M + 27, y, {size: 7.2, color: C_GRAY, maxW: W - 27}); y += 4.2; });
+  finishPages(doc, q);
+  return {bytes: await doc.bytes(q.name + ' – item analysis'), pages: doc.pages.length};
+}
+/* pdf dialogs */
+let PDF_OUT = null;
+function pdfMenu(kind, recId){
+  const q = quizById(currentQuizId()), paper = DB.settings.paper || 'a4';
+  const rec = recId && DB.results.find(r => r.id === recId);
+  const n = rec ? 1 : resultsFor(q.id).length;
+  const title = kind === 'analysis' ? 'Item analysis PDF' : rec ? 'This paper as PDF' : 'Checked papers PDF';
+  const desc = kind === 'analysis' ? `Difficulty, discrimination and option counts for each item, score distribution and KR-20, with a Retain / Revise / Reject remark per item.`
+    : rec ? `${esc(studentName(rec) || 'ID ' + rec.sid)}'s sheet, redrawn with a ✓ or ✗ on every item.`
+    : `All ${n} checked sheets, each redrawn with the student's marks and a ✓ or ✗ on every item. ${q.size === 'half' ? 'Two sheets per page.' : 'One sheet per page.'}`;
+  openModal(`<div class="mh"><h2>${title}</h2><button class="btn sm" onclick="closeModal()">Close</button></div>
+    <p class="small muted" style="margin-top:0">${desc}</p>
+    <label class="f"><span>Paper size</span><select id="pdfPaper">${Object.entries(PAPER).map(([k, v]) => `<option value="${k}" ${k === paper ? 'selected' : ''}>${v[2]}</option>`).join('')}</select></label>
+    ${kind === 'papers' && !rec ? `<label class="toggle" style="display:flex;margin-bottom:14px"><input type="checkbox" id="pdfSummary" checked> Start with a score list page</label>` : ''}
+    <div id="pdfBody"><button class="btn pri" data-act="pdfMake" data-kind="${kind}" data-id="${rec ? rec.id : ''}">Create PDF</button></div>`);
+}
+async function pdfMake(kind, recId, btn){
+  const q = quizById(currentQuizId()), paper = $('#pdfPaper').value;
+  DB.settings.paper = paper; persist();
+  const recs = recId ? DB.results.filter(r => r.id === recId) : sortedRecs(q);
+  if (!recs.length) return toast('No checked papers yet', true);
+  btn.disabled = true; btn.textContent = 'Creating PDF…';
+  await new Promise(r => setTimeout(r, 30));
+  try{
+    const out = kind === 'analysis' ? await makeAnalysisPDF(q, recs, {paper}) : await makePapersPDF(q, recs, {paper, summary: !recId && $('#pdfSummary')?.checked});
+    const who = recId ? '_' + fname(studentName(recs[0]) || recs[0].sid || 'paper') : '';
+    const name = `${fname(q.name)}${kind === 'analysis' ? '_item_analysis' : who || '_checked_papers'}.pdf`;
+    if (PDF_OUT && PDF_OUT.url) URL.revokeObjectURL(PDF_OUT.url);
+    const blob = new Blob([out.bytes], {type: 'application/pdf'});
+    PDF_OUT = {name, blob, url: URL.createObjectURL(blob)};
+    let canShare = false;
+    try{ canShare = !!(navigator.canShare && navigator.canShare({files: [new File([blob], name, {type: 'application/pdf'})]})); }catch(e){}
+    $('#pdfBody').innerHTML = `<div class="card" style="margin:0"><b style="word-break:break-all">${esc(name)}</b><div class="small muted">${out.pages} page${out.pages === 1 ? '' : 's'} · ${Math.max(1, Math.round(blob.size / 1024))} KB</div>
+      <div class="row" style="margin-top:10px"><button class="btn pri" data-act="pdfDl">Download</button>${canShare ? '<button class="btn" data-act="pdfShare">Share / Save to Files</button>' : ''}<button class="btn" data-act="pdfOpen">Open</button></div></div>`;
+  }catch(e){
+    console.error(e); btn.disabled = false; btn.textContent = 'Create PDF'; toast('Couldn\'t create the PDF: ' + (e.message || e), true);
+  }
+}
+function pdfDownload(){
+  if (!PDF_OUT) return;
+  const a = document.createElement('a'); a.href = PDF_OUT.url; a.download = PDF_OUT.name;
+  document.body.appendChild(a); a.click(); a.remove(); toast('PDF saved to Downloads');
+}
+async function pdfShare(){
+  if (!PDF_OUT) return;
+  try{ await navigator.share({files: [new File([PDF_OUT.blob], PDF_OUT.name, {type: 'application/pdf'})], title: PDF_OUT.name}); }
+  catch(e){ if (e.name !== 'AbortError') pdfDownload(); }
+}
+function pdfOpen(){ if (PDF_OUT && !window.open(PDF_OUT.url, '_blank')) pdfDownload(); }
+
 /* =================== more: roster & data =================== */
 function renderMore(){
   const ros = Object.entries(DB.roster).map(([id, n]) => `${id}, ${n}`).join('\n');
@@ -1039,7 +1410,7 @@ function renderMore(){
       <li><b>Answer key.</b> Tap the letters, type them in quick entry, or fill one sheet with the right answers and use "Scan key from paper".</li>
       <li><b>Print sheets</b> on A4 or short bond. Keep the 4 black corner squares and the little code strip at the top clear — don't staple or write on them.</li>
       <li><b>Scan.</b> Start the camera and hold the phone above the sheet until it beeps. With Auto-save on, just swap to the next sheet. Rescanning the same student ID replaces the old result.</li>
-      <li><b>Results.</b> Tap a student to fix a misread. Save as CSV for Excel/Google Sheets, or Print / PDF report.</li>
+      <li><b>Results.</b> Tap a student to fix a misread. Save as CSV for Excel/Google Sheets, download <b>Checked papers (PDF)</b> — every sheet with ✓/✗ marks — or <b>Item analysis (PDF)</b>.</li>
     </ol>
     <p><b>Tips:</b> flat sheet, even light, no hard shadows across bubbles. Use "Flash" in dim rooms. If the live camera won't open (some phones block it for files opened offline), use <b>Photo</b> — it takes a picture with the camera app and grades that.</p>
     <p class="small muted">Works fully offline. Save this file to your phone/laptop and open it in Chrome, Edge or Safari.</p></div>`;
@@ -1113,6 +1484,11 @@ document.addEventListener('click', e => {
       if (act === 'delRec') closeModal(); toast('Removed'); updateSession(); refresh(); break;
     }
     case 'exportCSV': exportCSV(); break;
+    case 'pdfMenu': pdfMenu(el.dataset.kind, id); break;
+    case 'pdfMake': pdfMake(el.dataset.kind, id, el); break;
+    case 'pdfDl': pdfDownload(); break;
+    case 'pdfShare': pdfShare(); break;
+    case 'pdfOpen': pdfOpen(); break;
     case 'printReport': printReport(); break;
     case 'doPrintReport': doPrintReport(); break;
     case 'saveRoster': DB.roster = parseRoster($('#roster').value); persist(); toast(`${Object.keys(DB.roster).length} students saved`); renderMore(); break;
