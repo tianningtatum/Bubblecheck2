@@ -1,0 +1,1143 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#1f4d3a">
+<title>BubbleCheck</title>
+<style>
+:root{--bg:#f3f2ed;--card:#fff;--ink:#1c2220;--muted:#66706b;--line:#dcdad2;--accent:#1f6f4a;--accent-ink:#fff;--soft:#e7f1eb;--bad:#c0392b;--bad-soft:#fbe9e7;--warn:#a86a12;--good:#1d8048;--blue:#2563c9}
+@media (prefers-color-scheme:dark){:root{--bg:#121514;--card:#1b201e;--ink:#e8ece9;--muted:#98a39d;--line:#2d3431;--accent:#46b67d;--accent-ink:#0b1a12;--soft:#1d3127;--bad:#ef6b5c;--bad-soft:#3a1f1c;--good:#4cc283;--blue:#6aa1ff}}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);-webkit-tap-highlight-color:transparent}
+header.top{position:sticky;top:0;z-index:5;background:var(--bg);padding:12px 16px 8px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--line)}
+header.top h1{font-size:18px;margin:0;letter-spacing:.2px}
+header.top .dot{width:22px;height:22px;border-radius:50%;background:var(--ink);box-shadow:inset 0 0 0 4px var(--bg),0 0 0 2px var(--ink)}
+header.top .sub{margin-left:auto;color:var(--muted);font-size:13px}
+main{max-width:880px;margin:0 auto;padding:14px 16px 96px}
+section.view{display:none}section.view.on{display:block}
+nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:6;display:flex;background:var(--card);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
+nav.tabs button{flex:1;border:0;background:none;color:var(--muted);padding:8px 0 9px;font:600 12px system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;gap:3px}
+nav.tabs button svg{width:23px;height:23px}
+nav.tabs button.on{color:var(--accent)}
+h2{font-size:17px;margin:4px 0 12px}
+h3{font-size:15px;margin:0 0 8px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px}
+.muted{color:var(--muted)}.small{font-size:13px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.spread{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.btn{appearance:none;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:9px;padding:9px 13px;font:600 14px system-ui,sans-serif;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.btn:active{transform:translateY(1px)}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.danger{color:var(--bad)}
+.btn.sm{padding:6px 10px;font-size:13px}
+.btn:disabled{opacity:.45}
+.btn.block{width:100%;justify-content:center}
+input,select,textarea{font:inherit;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%}
+textarea{min-height:140px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px}
+label.f{display:block;margin-bottom:10px;font-size:13px;color:var(--muted)}
+label.f>span{display:block;margin-bottom:4px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.chip{display:inline-block;padding:2px 8px;border-radius:99px;background:var(--soft);color:var(--accent);font-size:12px;font-weight:600}
+.chip.warn{background:#fff3dc;color:var(--warn)}
+@media (prefers-color-scheme:dark){.chip.warn{background:#3a2d14}}
+.qcard .acts{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.empty{text-align:center;padding:28px 10px;color:var(--muted)}
+/* scan */
+.stage{position:relative;background:#0d0f0e;border-radius:12px;overflow:hidden;min-height:240px}
+.stage canvas{display:block;width:100%;height:auto}
+.stage #ov{position:absolute;inset:0;width:100%;height:100%}
+.stage video{position:absolute;width:2px;height:2px;opacity:0;pointer-events:none}
+.stage .ph{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:#cfd6d2;text-align:center;padding:20px}
+.stage .hint{position:absolute;left:0;right:0;bottom:0;padding:8px 12px;background:linear-gradient(transparent,rgba(0,0,0,.7));color:#fff;font-size:13px;text-align:center}
+.scanbar{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+.res{display:flex;gap:14px;align-items:center}
+.res .big{font-size:30px;font-weight:800;letter-spacing:-.5px;min-width:86px}
+.res .big small{font-size:15px;color:var(--muted);font-weight:600}
+.toggle{display:inline-flex;align-items:center;gap:6px;font-size:14px;font-weight:600}
+.toggle input{width:auto}
+/* key editor */
+.kgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(205px,1fr));gap:4px 14px}
+.krow{display:flex;align-items:center;gap:5px;padding:3px 0}
+.krow .n{width:28px;text-align:right;font-weight:700;color:var(--muted);font-size:13px}
+.kb{width:31px;height:31px;border-radius:50%;border:1.5px solid var(--line);background:var(--card);color:var(--ink);font:700 13px system-ui,sans-serif;padding:0}
+.kb.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+/* results */
+table.t{width:100%;border-collapse:collapse;font-size:14px}
+table.t th{text-align:left;font-size:12px;color:var(--muted);font-weight:600;border-bottom:1px solid var(--line);padding:6px 6px}
+table.t td{border-bottom:1px solid var(--line);padding:9px 6px}
+table.t tr.click{cursor:pointer}
+table.t td.num,table.t th.num{text-align:right;font-variant-numeric:tabular-nums}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 10px}
+.stat b{display:block;font-size:19px}
+.stat span{font-size:12px;color:var(--muted)}
+.bar{height:8px;background:var(--line);border-radius:4px;overflow:hidden;min-width:60px}
+.bar i{display:block;height:100%;background:var(--accent)}
+.bar i.lo{background:var(--bad)}
+.agrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:6px}
+.acell{display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:8px;padding:4px 6px;font-size:13px}
+.acell .n{font-weight:700;width:24px;text-align:right;color:var(--muted)}
+.acell select{padding:3px 4px;width:52px}
+.acell.ok{border-color:var(--good);background:var(--soft)}
+.acell.no{border-color:var(--bad);background:var(--bad-soft)}
+.acell .k{font-size:11px;color:var(--muted)}
+/* modal & toast */
+#modal{position:fixed;inset:0;z-index:20;display:none;background:rgba(0,0,0,.45);align-items:flex-end;justify-content:center}
+#modal.on{display:flex}
+#modal .box{background:var(--bg);width:100%;max-width:880px;max-height:92vh;overflow:auto;border-radius:16px 16px 0 0;padding:16px 16px calc(20px + env(safe-area-inset-bottom))}
+@media (min-width:700px){#modal{align-items:center}#modal .box{border-radius:16px;max-height:88vh}}
+#modal .mh{display:flex;align-items:center;gap:8px;margin-bottom:12px;position:sticky;top:-16px;background:var(--bg);padding:6px 0;z-index:1}
+#modal .mh h2{margin:0;flex:1}
+#toast{position:fixed;left:50%;bottom:84px;transform:translateX(-50%);z-index:30;background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-weight:600;font-size:14px;max-width:92vw;opacity:0;transition:opacity .2s;pointer-events:none}
+#toast.on{opacity:1}#toast.bad{background:var(--bad);color:#fff}
+.help p,.help li{font-size:14px}.help ol{padding-left:20px}
+.sheet-preview{background:#fff;border:1px solid var(--line);border-radius:8px;padding:6px;overflow:hidden}
+.sheet-preview svg{width:100%;height:auto;display:block}
+#print-area{display:none}
+@page{size:auto;margin:8mm}
+@media print{
+  body{background:#fff;color:#000}
+  body>*:not(#print-area){display:none!important}
+  #print-area{display:block}
+  .pg{page-break-after:always;break-after:page;display:flex;flex-direction:column;align-items:center}
+  .pg:last-child{page-break-after:auto;break-after:auto}
+  .cut{width:100%;border-top:1px dashed #999;margin:1.5mm 0}
+  .rep{font:10.5pt Arial,Helvetica,sans-serif;color:#000}
+  .rep h1{font-size:15pt;margin:0 0 2mm}
+  .rep h2{font-size:12pt;margin:5mm 0 2mm}
+  .rep table{width:100%;border-collapse:collapse}
+  .rep th,.rep td{border:1px solid #999;padding:1.2mm 1.8mm;text-align:left}
+  .rep td.num,.rep th.num{text-align:right}
+  .rep tr{break-inside:avoid}
+  .rep .ans{font-family:"Courier New",monospace;font-size:9pt;letter-spacing:.5px;word-break:break-all}
+  .rep .ans .x{color:#c00;font-weight:bold;text-decoration:underline}
+}
+</style>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+</head>
+<body>
+<header class="top"><div class="dot"></div><h1>BubbleCheck</h1><span class="sub" id="hdrSub"></span></header>
+
+<main>
+  <section class="view" id="v-quizzes"></section>
+
+  <section class="view" id="v-scan">
+    <div class="row" style="margin-bottom:10px">
+      <select id="scanQuiz" style="flex:1"></select>
+    </div>
+    <div class="stage" id="stage">
+      <video id="video" playsinline muted autoplay></video>
+      <canvas id="cam" width="640" height="480"></canvas>
+      <canvas id="ov" width="640" height="480"></canvas>
+      <div class="ph" id="ph">
+        <div style="font-weight:700;font-size:16px">Scan answer sheets</div>
+        <div class="small">Hold the phone flat over the sheet so all 4 black corner squares are visible.</div>
+        <div class="row" style="justify-content:center">
+          <button class="btn pri" data-act="camStart" id="camStartBtn">Start live camera</button>
+          <button class="btn" data-act="snap" id="snapBtn">Take photo of sheet</button>
+          <button class="btn" data-act="lib">Choose from Photos</button>
+        </div>
+        <div class="small" id="camMsg" style="display:none;background:rgba(255,255,255,.1);border-radius:8px;padding:8px 10px;max-width:420px"></div>
+      </div>
+      <div class="hint" id="hint" style="display:none"></div>
+    </div>
+    <div class="scanbar">
+      <label class="toggle"><input type="checkbox" id="autoSave"> Auto-save</label>
+      <button class="btn sm" data-act="snap">Photo</button>
+      <button class="btn sm" data-act="lib">From Photos</button>
+      <button class="btn sm" data-act="torch" id="torchBtn" style="display:none">Flash</button>
+      <button class="btn sm" data-act="camStop" id="stopBtn" style="display:none">Stop camera</button>
+      <span class="muted small" id="sessCount" style="margin-left:auto"></span>
+    </div>
+    <div id="keyModeBanner" class="card" style="display:none;border-color:var(--warn)">
+      <div class="spread"><b>Answer key mode</b><button class="btn sm" data-act="cancelKeyMode">Cancel</button></div>
+      <div class="small muted">Scan a sheet you filled in with the correct answers. It becomes this quiz's key.</div>
+    </div>
+    <div id="lastRes"></div>
+    <input type="file" id="photoIn" accept="image/*" capture="environment" hidden>
+    <input type="file" id="libIn" accept="image/*" hidden>
+  </section>
+
+  <section class="view" id="v-results"></section>
+  <section class="view" id="v-more"></section>
+</main>
+
+<nav class="tabs">
+  <button data-tab="quizzes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h4"/></svg>Quizzes</button>
+  <button data-tab="scan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3"/><circle cx="12" cy="12" r="3.5"/></svg>Scan</button>
+  <button data-tab="results"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Results</button>
+  <button data-tab="more"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c1.2-3.6 4-5 7-5s5.8 1.4 7 5"/></svg>Roster &amp; data</button>
+</nav>
+
+<div id="modal"><div class="box" id="mbox"></div></div>
+<div id="toast"></div>
+<div id="print-area"></div>
+<input type="file" id="fileIn" hidden>
+
+<script>
+'use strict';
+/* =================== storage =================== */
+const STORE = 'bubblecheck.v1';
+const LETTERS = 'ABCDE';
+const $ = (s, r = document) => r.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+
+function blankDB(){ return {quizzes: [], results: [], roster: {}, settings: {autoSave: true, th: 0.25}}; }
+function loadDB(){
+  try{
+    const s = localStorage.getItem(STORE);
+    if (s){ const d = JSON.parse(s); const b = blankDB(); return {...b, ...d, settings: {...b.settings, ...(d.settings || {})}}; }
+  }catch(e){}
+  return blankDB();
+}
+let DB = loadDB();
+let storageOK = true;
+function persist(){
+  try{ localStorage.setItem(STORE, JSON.stringify(DB)); storageOK = true; }
+  catch(e){ storageOK = false; toast('Could not save in this browser. Download a backup from "Roster & data".', true); }
+}
+const quizById = id => DB.quizzes.find(q => q.id === id);
+const resultsFor = qid => DB.results.filter(r => r.quizId === qid);
+
+/* =================== sheet geometry (millimetres) =================== */
+const BR = 2.1, PITCH = 5.6;
+function layout(q){
+  const half = q.size === 'half';
+  const W = 170, H = half ? 118 : 240, d = q.idDigits, ch = q.choices, n = q.n;
+  const L = {W, H, half, id: [], q: [], qlab: [], code: [], lines: []};
+  for (let i = 0; i < 16; i++) L.code.push({x: 40 + 6 * i, y: 0});
+  const lab = half ? 13.5 : 18.5;
+  L.idLabelY = lab; L.idBoxY = lab + 1.5; L.idX0 = 8;
+  for (let c = 0; c < d; c++){
+    const col = [];
+    for (let r = 0; r < 10; r++) col.push({x: L.idX0 + c * PITCH + PITCH / 2, y: lab + 11 + r * PITCH});
+    L.id.push(col);
+  }
+  let cols, qx0, qx1 = 168, qy0;
+  if (!half){ cols = n <= 12 ? 1 : n <= 40 ? 2 : n <= 75 ? 3 : 4; qx0 = 2; qy0 = 92; }
+  else { cols = n <= 15 ? 1 : 2; qx0 = 4 + Math.max(d * PITCH, 52) + 6; qy0 = 16; }
+  const rows = Math.ceil(n / cols), slot = (qx1 - qx0) / cols, colW = 8 + ch * PITCH;
+  for (let i = 0; i < n; i++){
+    const c = Math.floor(i / rows), r = i % rows;
+    const x0 = qx0 + c * slot + (slot - colW) / 2, y = qy0 + r * PITCH + Math.floor(r / 5) * 1.6;
+    L.qlab.push({x: x0 + 6.6, y});
+    L.q.push(Array.from({length: ch}, (_, k) => ({x: x0 + 8 + k * PITCH + PITCH / 2, y})));
+  }
+  if (!half){
+    const lx = d > 0 ? L.idX0 + d * PITCH + 10 : 8;
+    L.lines = ['Name', 'Section', 'Date', 'Score'].map((t, i) => ({t, x: lx, x2: 166, y: 33 + i * 11}));
+    L.markX = lx; L.markY = 79;
+  } else {
+    const y0 = d > 0 ? 88 : 24, x2 = qx0 - 5;
+    L.lines = ['Name', 'Section', 'Date'].map((t, i) => ({t, x: 4, x2, y: y0 + i * 10}));
+  }
+  return L;
+}
+function codeValue(q){ return (q.n << 6) | ((q.choices === 5 ? 1 : 0) << 5) | ((q.size === 'half' ? 1 : 0) << 4) | q.idDigits; }
+function codeBits(q){
+  const v = codeValue(q), b = [1]; let p = 0;
+  for (let i = 12; i >= 0; i--){ const t = (v >> i) & 1; b.push(t); p ^= t; }
+  b.push(p); b.push(0); return b;
+}
+function parseCode(bits){
+  if (bits[0] !== 1 || bits[15] !== 0) return null;
+  let v = 0, p = 0;
+  for (let i = 1; i <= 13; i++){ v = (v << 1) | bits[i]; p ^= bits[i]; }
+  if (p !== bits[14]) return null;
+  const f = {n: v >> 6, choices: (v >> 5 & 1) ? 5 : 4, size: (v >> 4 & 1) ? 'half' : 'full', idDigits: v & 15};
+  if (f.n < 1 || f.n > 100 || f.idDigits > 10 || (f.size === 'half' && f.n > 30)) return null;
+  return f;
+}
+const sameFormat = (f, q) => f.n === q.n && f.choices === q.choices && f.size === q.size && f.idDigits === q.idDigits;
+const fmtLabel = f => `${f.n} items, A–${LETTERS[f.choices - 1]}, ${f.idDigits}-digit ID, ${f.size === 'half' ? 'half page' : 'full page'}`;
+
+function sheetSVG(q){
+  const L = layout(q), pad = 5, vw = L.W + 2 * pad, vh = L.H + 2 * pad;
+  const o = [];
+  o.push(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="${-pad} ${-pad} ${vw} ${vh}" width="${vw}mm" height="${vh}mm" font-family="Arial,Helvetica,sans-serif">`);
+  o.push(`<rect x="${-pad}" y="${-pad}" width="${vw}" height="${vh}" fill="#fff"/>`);
+  for (const [x, y] of [[0, 0], [L.W, 0], [L.W, L.H], [0, L.H]]) o.push(`<rect x="${x - 4}" y="${y - 4}" width="8" height="8" fill="#000"/>`);
+  codeBits(q).forEach((b, i) => { if (b) o.push(`<rect x="${L.code[i].x - 2}" y="-2" width="4" height="4" fill="#000"/>`); });
+  const title = q.name.length > 60 ? q.name.slice(0, 58) + '…' : q.name;
+  o.push(`<text x="${L.W / 2}" y="${L.half ? 8.6 : 9}" font-size="${L.half ? 4 : 4.4}" font-weight="700" text-anchor="middle">${esc(title)}</text>`);
+  if (!L.half) o.push(`<text x="${L.W / 2}" y="13.6" font-size="2.6" fill="#444" text-anchor="middle">${q.n} items · Use a dark pencil or pen · Fill each bubble completely · Do not fold</text>`);
+  if (L.id.length){
+    o.push(`<text x="${L.idX0}" y="${L.idLabelY}" font-size="2.6" font-weight="700">STUDENT ID</text>`);
+    L.id.forEach((col, c) => {
+      o.push(`<rect x="${col[0].x - 2.6}" y="${L.idBoxY}" width="5.2" height="5.5" fill="none" stroke="#000" stroke-width="0.25"/>`);
+      col.forEach((b, r) => {
+        o.push(`<circle cx="${b.x}" cy="${b.y}" r="${BR}" fill="none" stroke="#000" stroke-width="0.25"/><text x="${b.x}" y="${b.y + 0.85}" font-size="2.4" fill="#8a8a8a" text-anchor="middle">${r}</text>`);
+      });
+    });
+  }
+  for (const ln of L.lines){
+    o.push(`<text x="${ln.x}" y="${ln.y}" font-size="2.9">${ln.t}</text><line x1="${ln.x + (ln.t.length * 1.75 + 2)}" y1="${ln.y + 0.6}" x2="${ln.x2}" y2="${ln.y + 0.6}" stroke="#000" stroke-width="0.25"/>`);
+  }
+  if (!L.half){
+    const x = L.markX;
+    o.push(`<text x="${x}" y="${L.markY}" font-size="2.6" fill="#444">Mark like this:</text><circle cx="${x + 21}" cy="${L.markY - 0.9}" r="1.9" fill="#222"/>`);
+    o.push(`<text x="${x + 27}" y="${L.markY}" font-size="2.6" fill="#444">Not like this:</text>`);
+    const cx = x + 47, cy = L.markY - 0.9;
+    o.push(`<circle cx="${cx}" cy="${cy}" r="1.9" fill="none" stroke="#000" stroke-width="0.25"/><path d="M${cx - 1.2} ${cy} l0.9 1 l1.6 -2" fill="none" stroke="#222" stroke-width="0.4"/>`);
+    o.push(`<circle cx="${cx + 5.5}" cy="${cy}" r="1.9" fill="none" stroke="#000" stroke-width="0.25"/><path d="M${cx + 4.3} ${cy - 1.2} l2.4 2.4 M${cx + 6.7} ${cy - 1.2} l-2.4 2.4" fill="none" stroke="#222" stroke-width="0.4"/>`);
+  }
+  L.q.forEach((row, i) => {
+    o.push(`<text x="${L.qlab[i].x}" y="${L.qlab[i].y + 1}" font-size="2.8" font-weight="700" text-anchor="end">${i + 1}</text>`);
+    row.forEach((b, k) => o.push(`<circle cx="${b.x}" cy="${b.y}" r="${BR}" fill="none" stroke="#000" stroke-width="0.25"/><text x="${b.x}" y="${b.y + 0.85}" font-size="2.4" fill="#8a8a8a" text-anchor="middle">${LETTERS[k]}</text>`));
+  });
+  o.push(`<text x="${L.W / 2}" y="${L.H + 1}" font-size="2" fill="#999" text-anchor="middle">BubbleCheck</text>`);
+  o.push('</svg>');
+  return o.join('');
+}
+
+/* =================== image processing =================== */
+function toGray(ctx, w, h){
+  const d = ctx.getImageData(0, 0, w, h).data, g = new Uint8Array(w * h);
+  for (let i = 0, j = 0; i < g.length; i++, j += 4) g[i] = (d[j] * 77 + d[j + 1] * 150 + d[j + 2] * 29) >> 8;
+  return g;
+}
+function findBlobs(g, w, h){
+  const W1 = w + 1, I = new Uint32Array(W1 * (h + 1));
+  for (let y = 0; y < h; y++){
+    let row = 0;
+    for (let x = 0; x < w; x++){ row += g[y * w + x]; I[(y + 1) * W1 + x + 1] = I[y * W1 + x + 1] + row; }
+  }
+  const r = Math.max(8, Math.round(Math.max(w, h) / 12)), bin = new Uint8Array(w * h);
+  for (let y = 0; y < h; y++){
+    const y0 = Math.max(0, y - r), y1 = Math.min(h, y + r + 1);
+    for (let x = 0; x < w; x++){
+      const x0 = Math.max(0, x - r), x1 = Math.min(w, x + r + 1);
+      const sum = I[y1 * W1 + x1] - I[y0 * W1 + x1] - I[y1 * W1 + x0] + I[y0 * W1 + x0];
+      if (g[y * w + x] * (x1 - x0) * (y1 - y0) < sum * 0.72) bin[y * w + x] = 1;
+    }
+  }
+  const stack = new Int32Array(w * h), blobs = [];
+  for (let i = 0; i < bin.length; i++){
+    if (bin[i] !== 1) continue;
+    let sp = 0; stack[sp++] = i; bin[i] = 2;
+    let a = 0, sx = 0, sy = 0, sxx = 0, syy = 0, sxy = 0, mnx = w, mxx = 0, mny = h, mxy = 0;
+    while (sp){
+      const p = stack[--sp], x = p % w, y = (p - x) / w;
+      a++; sx += x; sy += y; sxx += x * x; syy += y * y; sxy += x * y;
+      if (x < mnx) mnx = x; if (x > mxx) mxx = x; if (y < mny) mny = y; if (y > mxy) mxy = y;
+      if (x > 0 && bin[p - 1] === 1){ bin[p - 1] = 2; stack[sp++] = p - 1; }
+      if (x < w - 1 && bin[p + 1] === 1){ bin[p + 1] = 2; stack[sp++] = p + 1; }
+      if (y > 0 && bin[p - w] === 1){ bin[p - w] = 2; stack[sp++] = p - w; }
+      if (y < h - 1 && bin[p + w] === 1){ bin[p + w] = 2; stack[sp++] = p + w; }
+    }
+    if (a < 20) continue;
+    const cx = sx / a, cy = sy / a, vxx = sxx / a - cx * cx, vyy = syy / a - cy * cy, vxy = sxy / a - cx * cy;
+    blobs.push({a, cx, cy, det: vxx * vyy - vxy * vxy, bw: mxx - mnx + 1, bh: mxy - mny + 1});
+  }
+  return blobs;
+}
+function solve8(A, b){
+  const n = 8, M = A.map((r, i) => [...r, b[i]]);
+  for (let c = 0; c < n; c++){
+    let p = c;
+    for (let r = c + 1; r < n; r++) if (Math.abs(M[r][c]) > Math.abs(M[p][c])) p = r;
+    if (Math.abs(M[p][c]) < 1e-12) return null;
+    [M[c], M[p]] = [M[p], M[c]];
+    for (let r = 0; r < n; r++){
+      if (r === c) continue;
+      const f = M[r][c] / M[c][c];
+      for (let k = c; k <= n; k++) M[r][k] -= f * M[c][k];
+    }
+  }
+  return M.map((r, i) => r[n] / r[i]);
+}
+function homography(src, dst){
+  const A = [], b = [];
+  for (let i = 0; i < 4; i++){
+    const [x, y] = src[i], [u, v] = dst[i];
+    A.push([x, y, 1, 0, 0, 0, -u * x, -u * y]); b.push(u);
+    A.push([0, 0, 0, x, y, 1, -v * x, -v * y]); b.push(v);
+  }
+  const h = solve8(A, b); if (!h) return null; h.push(1); return h;
+}
+function project(h, x, y){ const w = h[6] * x + h[7] * y + h[8]; return [(h[0] * x + h[1] * y + h[2]) / w, (h[3] * x + h[4] * y + h[5]) / w]; }
+function makeOffsets(rad, rings){
+  const pts = [[0, 0]];
+  for (const [f, k] of rings) for (let i = 0; i < k; i++){ const a = 2 * Math.PI * i / k + f; pts.push([Math.cos(a) * rad * f, Math.sin(a) * rad * f]); }
+  return pts;
+}
+const OFF_IN = makeOffsets(BR, [[0.25, 6], [0.5, 10], [0.72, 14]]);
+const OFF_RING = makeOffsets(BR, [[1.36, 16]]).slice(1);
+const OFF_CELL = makeOffsets(2, [[0.3, 6], [0.6, 8]]);
+const OFF_FID = makeOffsets(4, [[0.25, 6], [0.5, 8]]);
+const OFF_DOT = makeOffsets(1, [[0.4, 4]]);
+function samples(G, Hm, x, y, offs){
+  const out = [], w = G.w, h = G.h, g = G.g;
+  for (const [ox, oy] of offs){
+    const [u, v] = project(Hm, x + ox, y + oy), xi = Math.round(u), yi = Math.round(v);
+    if (xi >= 0 && yi >= 0 && xi < w && yi < h) out.push(g[yi * w + xi]);
+  }
+  return out;
+}
+const mean = a => a.length ? a.reduce((s, v) => s + v, 0) / a.length : NaN;
+const median = a => { if (!a.length) return NaN; const s = [...a].sort((x, y) => x - y); return s[s.length >> 1]; };
+function fidBlack(G, Hm, W, H){
+  return mean([[0, 0], [W, 0], [W, H], [0, H]].flatMap(([x, y]) => samples(G, Hm, x, y, OFF_FID)));
+}
+function readCode(G, Hm, W, H){
+  const black = fidBlack(G, Hm, W, H);
+  const wpts = [20, 150, 26, 144]; for (let i = 0; i < 15; i++) wpts.push(43 + 6 * i);
+  const white = median(wpts.map(x => mean(samples(G, Hm, x, 0, OFF_DOT))).filter(v => !isNaN(v)));
+  if (!(white - black > 35)) return null;
+  const thr = (white + black) / 2, bits = [];
+  // each corner must be a solid 8 mm square: dark 3 mm in, light 6.5 mm out
+  for (const [x, y] of [[0, 0], [W, 0], [W, H], [0, H]]){
+    for (const [dx, dy] of [[-3, -3], [3, -3], [3, 3], [-3, 3]]) if (!(mean(samples(G, Hm, x + dx, y + dy, OFF_DOT)) < thr)) return null;
+    const sx = x ? -1 : 1, sy = y ? -1 : 1;
+    for (const [dx, dy] of [[6.5 * sx, 0], [0, 6.5 * sy]]) if (!(mean(samples(G, Hm, x + dx, y + dy, OFF_DOT)) > thr)) return null;
+  }
+  for (let i = 0; i < 16; i++){ const m = mean(samples(G, Hm, 40 + 6 * i, 0, OFF_CELL)); if (isNaN(m)) return null; bits.push(m < thr ? 1 : 0); }
+  return parseCode(bits);
+}
+function detectSheet(G, q){
+  const {w, h} = G, N = w * h;
+  const blobs = findBlobs(G.g, w, h);
+  const cand = blobs.filter(b => {
+    if (b.a < N * 0.00012 || b.a > N * 0.03 || b.det <= 0) return false;
+    const m = b.a / (2 * Math.PI * Math.sqrt(b.det)), asp = b.bw / b.bh;
+    return m > 1.5 && m < 2.2 && asp > 0.4 && asp < 2.5 && b.a / (b.bw * b.bh) > 0.42;
+  }).sort((a, b) => b.a - a.a).slice(0, 12);
+  if (cand.length < 4) return null;
+  const quads = [];
+  for (let i = 0; i < cand.length; i++) for (let j = i + 1; j < cand.length; j++) for (let k = j + 1; k < cand.length; k++) for (let l = k + 1; l < cand.length; l++){
+    const s = [cand[i], cand[j], cand[k], cand[l]];
+    const amin = Math.min(...s.map(b => b.a)), amax = Math.max(...s.map(b => b.a));
+    if (amin / amax < 0.2) continue;
+    const mx = mean(s.map(b => b.cx)), my = mean(s.map(b => b.cy));
+    const p = s.map(b => [b.cx, b.cy]).sort((a, b) => Math.atan2(a[1] - my, a[0] - mx) - Math.atan2(b[1] - my, b[0] - mx));
+    let sign = 0, ok = true, area = 0, minEdge = 1e9;
+    for (let t = 0; t < 4; t++){
+      const A = p[t], B = p[(t + 1) % 4], C = p[(t + 2) % 4];
+      const cr = (B[0] - A[0]) * (C[1] - B[1]) - (B[1] - A[1]) * (C[0] - B[0]);
+      if (sign === 0) sign = Math.sign(cr); else if (Math.sign(cr) !== sign){ ok = false; break; }
+      area += A[0] * B[1] - B[0] * A[1];
+      minEdge = Math.min(minEdge, Math.hypot(B[0] - A[0], B[1] - A[1]));
+    }
+    if (!ok || minEdge < 5 * Math.sqrt(amax)) continue;
+    quads.push({p, area: Math.abs(area) / 2});
+  }
+  quads.sort((a, b) => b.area - a.area);
+  const heights = q.size === 'half' ? [118, 240] : [240, 118];
+  let other = null;
+  for (const qd of quads.slice(0, 10)) for (let rot = 0; rot < 4; rot++){
+    const dst = [0, 1, 2, 3].map(t => qd.p[(t + rot) % 4]);
+    for (const H of heights){
+      const Hm = homography([[0, 0], [170, 0], [170, H], [0, H]], dst);
+      if (!Hm) continue;
+      const fmt = readCode(G, Hm, 170, H);
+      if (!fmt || (fmt.size === 'half') !== (H === 118)) continue;
+      if (sameFormat(fmt, q)) return {Hm, quad: dst, fmt, H};
+      if (!other) other = {Hm, quad: dst, fmt, H};
+    }
+  }
+  return other;
+}
+function gradeSheet(G, Hm, q, th){
+  const L = layout(q), black = fidBlack(G, Hm, L.W, L.H);
+  const dark = b => {
+    const m = mean(samples(G, Hm, b.x, b.y, OFF_IN)), w = median(samples(G, Hm, b.x, b.y, OFF_RING));
+    if (isNaN(m) || isNaN(w)) return 0;
+    return Math.max(0, Math.min(1.5, (w - m) / Math.max(w - black, 25)));
+  };
+  const decide = arr => {
+    let mx = -1, mi = -1, mn = 9;
+    arr.forEach((d, i) => { if (d > mx){ mx = d; mi = i; } if (d < mn) mn = d; });
+    if (mx < th || mx - mn < 0.15) return -1;
+    return arr.filter(d => d >= Math.max(th, mx * 0.7)).length > 1 ? -2 : mi;
+  };
+  const idDark = L.id.map(col => col.map(dark));
+  const qDark = L.q.map(row => row.map(dark));
+  // adapt to this sheet: most bubbles are empty, so the median is the "empty" level
+  th = Math.max(th, median(qDark.flat().concat(idDark.flat())) + 0.15);
+  const sid = idDark.map(c => { const r = decide(c); return r >= 0 ? String(r) : '?'; }).join('');
+  const answers = qDark.map(r => { const k = decide(r); return k >= 0 ? LETTERS[k] : k === -2 ? '*' : ''; });
+  return {sid, answers, idDark, qDark};
+}
+
+/* =================== scoring =================== */
+function scoreOf(q, answers){
+  let s = 0, t = 0, wrong = 0, blank = 0, multi = 0;
+  for (let i = 0; i < q.n; i++){
+    const k = q.key[i]; if (!k) continue; t++;
+    const a = answers[i] || '';
+    if (a.length === 1 && a !== '*' && k.includes(a)) s++;
+    else if (!a) blank++; else if (a === '*') multi++; else wrong++;
+  }
+  return {s, t, wrong, blank, multi, pct: t ? s / t * 100 : 0};
+}
+const isRight = (q, i, a) => !!(q.key[i] && a && a.length === 1 && a !== '*' && q.key[i].includes(a));
+const studentName = r => r.name || DB.roster[r.sid] || '';
+const sidOk = s => s && !s.includes('?');
+
+/* =================== UI helpers =================== */
+let toastT = 0;
+function toast(msg, bad){ const t = $('#toast'); t.textContent = msg; t.className = 'on' + (bad ? ' bad' : ''); clearTimeout(toastT); toastT = setTimeout(() => t.className = '', 2600); }
+function openModal(html){ $('#mbox').innerHTML = html; $('#modal').classList.add('on'); $('#mbox').scrollTop = 0; }
+function closeModal(){ $('#modal').classList.remove('on'); $('#mbox').innerHTML = ''; modalState = null; }
+let modalState = null;
+$('#modal').addEventListener('click', e => { if (e.target.id === 'modal') closeModal(); });
+let AC;
+function beep(ok = true){
+  try{
+    AC = AC || new (window.AudioContext || window.webkitAudioContext)();
+    const o = AC.createOscillator(), g = AC.createGain();
+    o.frequency.value = ok ? 1046 : 330; g.gain.value = 0.08; o.connect(g); g.connect(AC.destination);
+    o.start(); o.stop(AC.currentTime + 0.13);
+  }catch(e){}
+  if (navigator.vibrate) navigator.vibrate(ok ? 60 : [40, 60, 40]);
+}
+function download(name, text, type){
+  const blob = new Blob([text], {type});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
+async function shareFile(name, text, type){
+  try{
+    const f = new File([text], name, {type});
+    if (navigator.canShare && navigator.canShare({files: [f]})){ await navigator.share({files: [f], title: name}); return true; }
+  }catch(e){ if (e.name === 'AbortError') return true; }
+  return false;
+}
+const fname = s => s.replace(/[^\w\- ]+/g, '').trim().replace(/\s+/g, '_') || 'quiz';
+const fmtTime = t => new Date(t).toLocaleString(undefined, {month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit'});
+function quizOptions(sel){
+  return DB.quizzes.map(q => `<option value="${q.id}" ${q.id === sel ? 'selected' : ''}>${esc(q.name)}</option>`).join('');
+}
+function currentQuizId(){
+  let id = DB.settings.lastQuiz;
+  if (!quizById(id)) id = DB.quizzes[0]?.id;
+  return id;
+}
+function setCurrentQuiz(id){ DB.settings.lastQuiz = id; persist(); }
+
+/* =================== tabs =================== */
+let tab = 'quizzes';
+function show(t){
+  if (tab === 'scan' && t !== 'scan') camStop();
+  tab = t;
+  document.querySelectorAll('section.view').forEach(s => s.classList.toggle('on', s.id === 'v-' + t));
+  document.querySelectorAll('nav.tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
+  ({quizzes: renderQuizzes, scan: renderScan, results: renderResults, more: renderMore})[t]();
+  window.scrollTo(0, 0);
+}
+document.querySelector('nav.tabs').addEventListener('click', e => { const b = e.target.closest('button'); if (b) show(b.dataset.tab); });
+
+/* =================== quizzes =================== */
+function renderQuizzes(){
+  const v = $('#v-quizzes');
+  if (!DB.quizzes.length){
+    v.innerHTML = `<div class="card empty"><h2>No quizzes yet</h2><p>Create a quiz, set its answer key, print the sheets, then scan.</p><button class="btn pri" data-act="newQuiz">+ New quiz</button></div>`;
+    return;
+  }
+  v.innerHTML = `<div class="spread"><h2>Quizzes</h2><button class="btn pri" data-act="newQuiz">+ New quiz</button></div>` +
+    [...DB.quizzes].reverse().map(q => {
+      const set = q.key.filter(Boolean).length, cnt = resultsFor(q.id).length;
+      return `<div class="card qcard">
+        <div class="spread"><h3 style="margin:0">${esc(q.name)}</h3><span class="chip">${cnt} scanned</span></div>
+        <div class="small muted" style="margin-top:4px">${fmtLabel(q)}</div>
+        <div class="small" style="margin-top:4px">${set === q.n ? '<span class="chip">Key complete</span>' : `<span class="chip warn">Key ${set}/${q.n} set</span>`}</div>
+        <div class="acts">
+          <button class="btn sm" data-act="editKey" data-id="${q.id}">Answer key</button>
+          <button class="btn sm" data-act="printSheets" data-id="${q.id}">Print sheets</button>
+          <button class="btn sm pri" data-act="goScan" data-id="${q.id}">Scan</button>
+          <button class="btn sm" data-act="goResults" data-id="${q.id}">Results</button>
+          <button class="btn sm" data-act="editQuiz" data-id="${q.id}">Settings</button>
+        </div></div>`;
+    }).join('');
+}
+function quizForm(q){
+  const isNew = !q;
+  q = q || {name: '', n: 20, choices: 5, idDigits: 7, size: 'full'};
+  const has = !isNew && resultsFor(q.id).length;
+  openModal(`<div class="mh"><h2>${isNew ? 'New quiz' : 'Quiz settings'}</h2><button class="btn sm" onclick="closeModal()">Close</button></div>
+    <label class="f"><span>Quiz name (printed on the sheet)</span><input id="qName" value="${esc(q.name)}" placeholder="e.g. ENTECH30 Quiz 2 – Sec A" maxlength="80"></label>
+    <div class="grid2">
+      <label class="f"><span>Number of items (1–100)</span><input id="qN" type="number" min="1" max="100" value="${q.n}"></label>
+      <label class="f"><span>Choices</span><select id="qCh"><option value="4" ${q.choices === 4 ? 'selected' : ''}>A–D</option><option value="5" ${q.choices === 5 ? 'selected' : ''}>A–E</option></select></label>
+      <label class="f"><span>Student ID digits (0–10)</span><input id="qD" type="number" min="0" max="10" value="${q.idDigits}"></label>
+      <label class="f"><span>Sheet size</span><select id="qSz"><option value="full" ${q.size === 'full' ? 'selected' : ''}>Full page (up to 100)</option><option value="half" ${q.size === 'half' ? 'selected' : ''}>Half page, 2 per paper (up to 30)</option></select></label>
+    </div>
+    ${has ? '<p class="small" style="color:var(--warn)">This quiz already has scanned results. Changing items, choices, ID digits or size means old printed sheets won\'t scan anymore — reprint them.</p>' : ''}
+    <div class="row" style="margin-top:6px">
+      <button class="btn pri" data-act="saveQuiz" data-id="${isNew ? '' : q.id}">${isNew ? 'Create quiz' : 'Save'}</button>
+      ${isNew ? '' : `<button class="btn" data-act="dupQuiz" data-id="${q.id}">Duplicate</button><button class="btn danger" data-act="delQuiz" data-id="${q.id}" style="margin-left:auto">Delete quiz</button>`}
+    </div>`);
+}
+function saveQuizForm(id){
+  const name = $('#qName').value.trim() || 'Untitled quiz';
+  let n = Math.round(+$('#qN').value), ch = +$('#qCh').value, d = Math.round(+$('#qD').value), size = $('#qSz').value;
+  if (!(n >= 1 && n <= 100)) return toast('Items must be 1 to 100', true);
+  if (!(d >= 0 && d <= 10)) return toast('ID digits must be 0 to 10', true);
+  if (size === 'half' && n > 30) return toast('Half-page sheets fit up to 30 items', true);
+  if (id){
+    const q = quizById(id);
+    q.key = Array.from({length: n}, (_, i) => (q.key[i] || '').split('').filter(c => LETTERS.indexOf(c) < ch).join(''));
+    Object.assign(q, {name, n, choices: ch, idDigits: d, size});
+  } else {
+    const q = {id: uid(), name, n, choices: ch, idDigits: d, size, key: Array(n).fill(''), created: Date.now()};
+    DB.quizzes.push(q); setCurrentQuiz(q.id);
+    persist(); closeModal(); renderQuizzes(); keyEditor(q.id); return;
+  }
+  persist(); closeModal(); renderQuizzes(); toast('Saved');
+}
+
+/* answer key editor */
+function keyEditor(id){
+  const q = quizById(id); modalState = {type: 'key', id, multi: q.key.some(k => k.length > 1)};
+  openModal(`<div class="mh"><h2>Answer key</h2><button class="btn sm pri" onclick="closeModal();renderQuizzes()">Done</button></div>
+    <div class="small muted" style="margin-bottom:8px">${esc(q.name)} · tap the correct letter for each item. Items left blank are not counted.</div>
+    <div class="card" style="padding:10px">
+      <label class="f" style="margin-bottom:6px"><span>Quick entry — type the answers in order (spaces ignored), e.g. <b>ABDCA BBCDA</b></span>
+      <div class="row"><input id="keyTxt" autocapitalize="characters" style="flex:1" placeholder="ABCD…"><button class="btn sm" data-act="keyTxt">Apply</button></div></label>
+      <div class="row">
+        <label class="toggle small"><input type="checkbox" id="keyMulti" ${modalState.multi ? 'checked' : ''}> Allow more than one correct answer</label>
+        <button class="btn sm" data-act="keyScan" data-id="${id}" style="margin-left:auto">Scan key from paper</button>
+        <button class="btn sm danger" data-act="keyClear">Clear</button>
+      </div>
+    </div>
+    <div class="kgrid" id="kgrid"></div>`);
+  $('#keyMulti').onchange = e => modalState.multi = e.target.checked;
+  drawKeyGrid();
+}
+function drawKeyGrid(){
+  const q = quizById(modalState.id);
+  $('#kgrid').innerHTML = q.key.map((k, i) => `<div class="krow"><span class="n">${i + 1}</span>${LETTERS.slice(0, q.choices).split('').map(L => `<button class="kb ${k.includes(L) ? 'on' : ''}" data-act="kb" data-i="${i}" data-l="${L}">${L}</button>`).join('')}</div>`).join('');
+}
+
+/* print sheets */
+function printSheets(id){
+  const q = quizById(id);
+  openModal(`<div class="mh"><h2>Print answer sheets</h2><button class="btn sm" onclick="closeModal()">Close</button></div>
+    <div class="sheet-preview" style="max-width:${q.size === 'half' ? 520 : 420}px;margin:0 auto 12px">${sheetSVG(q)}</div>
+    <label class="f"><span>How many sheets?</span><input id="copies" type="number" min="1" max="200" value="${q.size === 'half' ? 40 : 40}"></label>
+    <p class="small muted">${q.size === 'half' ? 'Two sheets per paper — cut along the dashed line.' : 'One sheet per paper.'} Works on A4 or short bond (Letter). Print at 100% / "Actual size" if your printer asks, but slight scaling is fine. On a phone, choose "Save as PDF" and print it later.</p>
+    <div class="row"><button class="btn pri" data-act="doPrintSheets" data-id="${id}">Print</button></div>`);
+}
+function doPrintSheets(id){
+  const q = quizById(id), n = Math.max(1, Math.min(200, Math.round(+$('#copies').value || 1)));
+  const svg = sheetSVG(q); let html = '';
+  if (q.size === 'half'){
+    for (let i = 0; i < n; i += 2) html += `<div class="pg">${svg}${i + 1 < n ? '<div class="cut"></div>' + svg : ''}</div>`;
+  } else for (let i = 0; i < n; i++) html += `<div class="pg">${svg}</div>`;
+  closeModal(); printHTML(html);
+}
+function printHTML(html){
+  const pa = $('#print-area'); pa.innerHTML = html;
+  setTimeout(() => { window.print(); }, 60);
+}
+window.addEventListener('afterprint', () => { $('#print-area').innerHTML = ''; });
+
+/* =================== scanning =================== */
+const LO_MAX = 900, HI_MAX = 1600;
+const S = {stream: null, running: false, frozenUntil: 0, last: 0, busy: false, stableKey: '', stableN: 0, armed: true, miss: 0,
+  lastSavedSid: null, session: 0, pending: null, keyMode: null, torch: false};
+const cam = $('#cam'), ov = $('#ov'), video = $('#video'), camCtx = cam.getContext('2d', {willReadFrequently: true});
+const hiC = document.createElement('canvas'), hiCtx = hiC.getContext('2d', {willReadFrequently: true});
+
+function renderScan(){
+  const sel = $('#scanQuiz');
+  if (!DB.quizzes.length){ sel.innerHTML = '<option>Create a quiz first</option>'; }
+  else sel.innerHTML = quizOptions(currentQuizId());
+  $('#autoSave').checked = DB.settings.autoSave !== false;
+  if (!liveCamSupported() && !S.pending) camMsg(NO_LIVE_MSG);
+  $('#keyModeBanner').style.display = S.keyMode ? '' : 'none';
+  updateSession(); renderLast();
+}
+$('#scanQuiz').onchange = e => { setCurrentQuiz(e.target.value); S.pending = null; S.keyMode = null; renderScan(); clearOverlay(); };
+$('#autoSave').onchange = e => { DB.settings.autoSave = e.target.checked; persist(); };
+function updateSession(){ $('#sessCount').textContent = S.session ? `${S.session} saved this session` : ''; }
+function hint(t){ const h = $('#hint'); if (t){ h.textContent = t; h.style.display = ''; } else h.style.display = 'none'; }
+
+function liveCamSupported(){ return !!(window.isSecureContext !== false && navigator.mediaDevices && navigator.mediaDevices.getUserMedia); }
+function camMsg(html){
+  const m = $('#camMsg'); m.innerHTML = html || ''; m.style.display = html ? '' : 'none';
+  if (html){ $('#snapBtn').classList.add('pri'); $('#camStartBtn').classList.remove('pri'); }
+}
+const NO_LIVE_MSG = `<b>Live camera is blocked here.</b> Phones only allow live camera on secure web pages, and a file opened from storage or inside another app usually isn't one.<br><br>
+  Use <b>Take photo of sheet</b> instead — it opens your camera app, grades the picture, and "Save &amp; next" opens the camera again for the next sheet.`;
+const withTimeout = (p, ms) => Promise.race([p, new Promise((_, bad) => setTimeout(() => bad({name: 'Timeout'}), ms))]);
+async function camStart(){
+  if (!DB.quizzes.length) return toast('Create a quiz first', true);
+  if (!liveCamSupported()){ camMsg(NO_LIVE_MSG); return; }
+  camMsg('Opening camera… allow access if your phone asks.');
+  const tries = [
+    {audio: false, video: {facingMode: {ideal: 'environment'}, width: {ideal: 1920}, height: {ideal: 1080}}},
+    {audio: false, video: {facingMode: 'environment'}},
+    {audio: false, video: true}];
+  let err = null;
+  for (const c of tries){
+    try{ S.stream = await withTimeout(navigator.mediaDevices.getUserMedia(c), 12000); err = null; break; }
+    catch(e){ err = e; if (e.name === 'NotAllowedError' || e.name === 'SecurityError' || e.name === 'Timeout') break; }
+  }
+  if (!S.stream){
+    const n = err && err.name;
+    camMsg(n === 'NotAllowedError' ? '<b>Camera permission was denied.</b> Allow camera for this page in your browser\'s site settings and try again — or use <b>Take photo of sheet</b>.'
+      : n === 'NotFoundError' || n === 'OverconstrainedError' ? '<b>No camera found.</b> Use <b>Take photo of sheet</b> to pick a photo instead.'
+      : n === 'NotReadableError' ? '<b>The camera is busy</b> — close other apps using it and try again, or use <b>Take photo of sheet</b>.'
+      : n === 'Timeout' || n === 'SecurityError' ? NO_LIVE_MSG
+      : `<b>Couldn't start the camera</b> (${esc(n || 'unknown error')}). Use <b>Take photo of sheet</b> instead.`);
+    return;
+  }
+  camMsg('');
+  video.srcObject = S.stream;
+  video.play().catch(() => {});
+  S.running = true; S.armed = true; S.stableN = 0; S.miss = 0; S.pending = null;
+  $('#ph').style.display = 'none'; $('#stopBtn').style.display = '';
+  const tr = S.stream.getVideoTracks()[0], caps = tr.getCapabilities ? tr.getCapabilities() : {};
+  $('#torchBtn').style.display = caps.torch ? '' : 'none';
+  hint('Fit all 4 corner squares in view');
+  requestAnimationFrame(loop);
+}
+function camStop(){
+  S.running = false;
+  if (S.stream){ S.stream.getTracks().forEach(t => t.stop()); S.stream = null; }
+  $('#stopBtn').style.display = 'none'; $('#torchBtn').style.display = 'none'; S.torch = false;
+  if (!S.pending){ $('#ph').style.display = ''; hint(''); clearOverlay(); }
+}
+async function toggleTorch(){
+  if (!S.stream) return;
+  S.torch = !S.torch;
+  try{ await S.stream.getVideoTracks()[0].applyConstraints({advanced: [{torch: S.torch}]}); }catch(e){ toast('Flash not supported', true); }
+}
+function sizeCanvases(w, h){
+  if (cam.width !== w || cam.height !== h){ cam.width = w; cam.height = h; ov.width = w; ov.height = h; }
+}
+function loop(now){
+  if (!S.running) return;
+  requestAnimationFrame(loop);
+  const vw = video.videoWidth, vh = video.videoHeight;
+  if (!vw || !vh) return;
+  if (now < S.frozenUntil) return;
+  const s = Math.min(1, LO_MAX / Math.max(vw, vh)), lw = Math.round(vw * s), lh = Math.round(vh * s);
+  sizeCanvases(lw, lh);
+  camCtx.drawImage(video, 0, 0, lw, lh);
+  if (now - S.last < 170 || S.busy) return;
+  S.last = now; S.busy = true;
+  try{ liveStep(vw, vh, now); }catch(e){ console.error(e); }
+  S.busy = false;
+}
+// Analyse what's currently in the preview canvas; grade at higher resolution from `src`.
+function analyze(src, sw, sh){
+  const q = quizById(currentQuizId()); if (!q) return {err: 'noquiz'};
+  const lw = cam.width, lh = cam.height;
+  const G = {g: toGray(camCtx, lw, lh), w: lw, h: lh};
+  const det = detectSheet(G, q);
+  if (!det) return {err: 'nosheet'};
+  if (!sameFormat(det.fmt, q)) return {err: 'format', det, q};
+  const s = Math.min(1, HI_MAX / Math.max(sw, sh)), hw = Math.round(sw * s), hh = Math.round(sh * s);
+  hiC.width = hw; hiC.height = hh; hiCtx.drawImage(src, 0, 0, hw, hh);
+  const GH = {g: toGray(hiCtx, hw, hh), w: hw, h: hh}, k = hw / lw, Hh = det.Hm.slice();
+  for (let i = 0; i < 6; i++) Hh[i] *= k;
+  const res = gradeSheet(GH, Hh, q, DB.settings.th || 0.25);
+  return {det, res, q};
+}
+function liveStep(vw, vh, now){
+  const A = analyze(video, vw, vh);
+  if (A.err){
+    S.miss++; S.stableN = 0; S.stableKey = '';
+    if (S.miss >= 3) S.armed = true;
+    if (A.err === 'format'){ drawOverlay(A.det, null, null); hint(formatMsg(A.det.fmt, A.q)); }
+    else { clearOverlay(); hint(S.armed ? 'Fit all 4 corner squares in view' : 'Saved ✓ — next sheet'); }
+    return;
+  }
+  S.miss = 0;
+  const key = A.res.sid + '|' + A.res.answers.join(',');
+  if (key === S.stableKey) S.stableN++; else { S.stableKey = key; S.stableN = 1; }
+  drawOverlay(A.det, A.res, A.q);
+  if (S.keyMode){
+    if (S.stableN >= 3){ applyScannedKey(A); S.frozenUntil = now + 1200; }
+    else hint('Hold still…');
+    return;
+  }
+  const differentStudent = sidOk(A.res.sid) && A.res.sid !== S.lastSavedSid;
+  if (!S.armed && !differentStudent){ hint('Already saved — remove sheet or show the next one'); return; }
+  if (S.stableN < 3){ hint('Hold still…'); return; }
+  S.pending = {quizId: A.q.id, sid: A.res.sid, answers: A.res.answers};
+  if (DB.settings.autoSave !== false){
+    savePending(true);
+    S.frozenUntil = now + 1300; S.armed = false;
+    hint('Saved ✓ — next sheet');
+  } else {
+    S.frozenUntil = now + 1e9; // hold frame until user decides
+    beep(true); hint('Check, then Save or Retake'); renderLast();
+  }
+}
+function formatMsg(f, q){
+  const match = DB.quizzes.filter(z => sameFormat(f, z)).map(z => z.name);
+  return `This sheet is ${fmtLabel(f)} — not "${q.name}".` + (match.length ? ` Matches: ${match.slice(0, 2).join(', ')}` : '');
+}
+function savePending(auto){
+  const p = S.pending; if (!p) return;
+  const q = quizById(p.quizId);
+  let rec = sidOk(p.sid) ? DB.results.find(r => r.quizId === p.quizId && r.sid === p.sid) : null, replaced = !!rec;
+  if (rec){ rec.answers = p.answers; rec.at = Date.now(); }
+  else { rec = {id: uid(), quizId: p.quizId, sid: p.sid, answers: p.answers, at: Date.now()}; DB.results.push(rec); }
+  persist();
+  S.lastSavedSid = p.sid; S.session++; S.last_rec = rec.id; S.lastReplaced = replaced;
+  S.pending = null; beep(true);
+  const sc = scoreOf(q, rec.answers);
+  toast(`${replaced ? 'Updated' : 'Saved'}: ${studentName(rec) || 'ID ' + rec.sid} — ${sc.s}/${sc.t}`);
+  updateSession(); renderLast(rec);
+  if (!auto && S.running){ S.frozenUntil = 0; S.armed = false; }
+}
+function renderLast(rec){
+  const box = $('#lastRes');
+  const p = S.pending;
+  if (p){
+    const q = quizById(p.quizId), sc = scoreOf(q, p.answers);
+    box.innerHTML = `<div class="card"><div class="res"><div class="big">${sc.s}<small>/${sc.t}</small></div>
+      <div style="flex:1"><b>${esc(DB.roster[p.sid] || '')}</b> <span class="muted">ID ${esc(p.sid || '—')}</span>${sidOk(p.sid) ? '' : ' <span class="chip warn">check ID</span>'}
+      <div class="small muted">${sc.wrong} wrong · ${sc.blank} blank${sc.multi ? ` · ${sc.multi} double-marked` : ''}</div></div></div>
+      <div class="row" style="margin-top:10px">${S.running ? '' : '<button class="btn pri" data-act="saveNext">Save &amp; next photo</button>'}<button class="btn ${S.running ? 'pri' : ''}" data-act="savePending">Save</button><button class="btn" data-act="retake">Retake</button></div></div>`;
+    return;
+  }
+  rec = rec || (S.last_rec && DB.results.find(r => r.id === S.last_rec));
+  if (!rec){ box.innerHTML = ''; return; }
+  const q = quizById(rec.quizId); if (!q){ box.innerHTML = ''; return; }
+  const sc = scoreOf(q, rec.answers);
+  box.innerHTML = `<div class="card"><div class="res"><div class="big">${sc.s}<small>/${sc.t}</small></div>
+    <div style="flex:1"><b>${esc(studentName(rec))}</b> <span class="muted">ID ${esc(rec.sid || '—')}</span>${sidOk(rec.sid) ? '' : ' <span class="chip warn">check ID</span>'}
+    <div class="small muted">${S.lastReplaced ? 'Updated earlier scan · ' : ''}${sc.wrong} wrong · ${sc.blank} blank${sc.multi ? ` · ${sc.multi} double-marked` : ''}</div></div></div>
+    <div class="row" style="margin-top:10px"><button class="btn sm" data-act="openRec" data-id="${rec.id}">Details / edit</button><button class="btn sm danger" data-act="undoRec" data-id="${rec.id}">Undo</button></div></div>`;
+}
+function applyScannedKey(A){
+  const q = A.q;
+  q.key = A.res.answers.map(a => a === '*' ? '' : a);
+  persist(); beep(true);
+  const set = q.key.filter(Boolean).length;
+  toast(`Answer key scanned: ${set}/${q.n} items set`);
+  S.keyMode = null; $('#keyModeBanner').style.display = 'none';
+  camStop(); show('quizzes'); keyEditor(q.id);
+}
+function clearOverlay(){ ov.getContext('2d').clearRect(0, 0, ov.width, ov.height); }
+function drawOverlay(det, res, q){
+  const c = ov.getContext('2d'); c.clearRect(0, 0, ov.width, ov.height);
+  if (!det) return;
+  const Hm = det.Hm, lw = Math.max(2, ov.width / 260);
+  c.lineWidth = lw * 1.5; c.strokeStyle = res ? '#2ecc71' : '#f39c12';
+  c.beginPath(); det.quad.forEach(([x, y], i) => i ? c.lineTo(x, y) : c.moveTo(x, y)); c.closePath(); c.stroke();
+  if (!res) return;
+  const L = layout(q);
+  const rpx = (x, y) => { const a = project(Hm, x, y), b = project(Hm, x + BR, y); return [a, Math.hypot(b[0] - a[0], b[1] - a[1])]; };
+  c.lineWidth = lw;
+  L.id.forEach((col, ci) => { const d = res.sid[ci]; if (d === '?') return; const [p, r] = rpx(col[+d].x, col[+d].y); c.fillStyle = 'rgba(37,99,201,.65)'; c.beginPath(); c.arc(p[0], p[1], r * 1.15, 0, 7); c.fill(); });
+  L.q.forEach((row, i) => {
+    const a = res.answers[i], k = q.key[i] || '';
+    row.forEach((b, j) => {
+      const Lt = LETTERS[j], [p, r] = rpx(b.x, b.y);
+      const marked = a === Lt || (a === '*' && res.qDark[i][j] >= (DB.settings.th || 0.25));
+      if (marked){
+        c.fillStyle = !k ? 'rgba(37,99,201,.65)' : (a !== '*' && k.includes(a)) ? 'rgba(46,204,113,.75)' : 'rgba(231,76,60,.75)';
+        c.beginPath(); c.arc(p[0], p[1], r * 1.2, 0, 7); c.fill();
+      } else if (k.includes(Lt) && !isRight(q, i, a)){
+        c.strokeStyle = 'rgba(46,204,113,.95)'; c.beginPath(); c.arc(p[0], p[1], r * 1.3, 0, 7); c.stroke();
+      }
+    });
+  });
+  const sc = scoreOf(q, res.answers), [tl] = [det.quad[0]];
+  const txt = `${sc.s}/${sc.t}`; c.font = `800 ${Math.round(ov.width / 12)}px system-ui,sans-serif`;
+  const tw = c.measureText(txt).width, pad = ov.width / 60;
+  c.fillStyle = 'rgba(0,0,0,.65)'; c.fillRect(ov.width - tw - pad * 3, pad, tw + pad * 2, ov.width / 12 + pad * 1.4);
+  c.fillStyle = '#fff'; c.textBaseline = 'top'; c.fillText(txt, ov.width - tw - pad * 2, pad * 1.6);
+}
+const photoC = document.createElement('canvas');
+async function shrinkPhoto(file){
+  const url = URL.createObjectURL(file);
+  try{
+    const im = new Image(); im.decoding = 'async';
+    await new Promise((ok, bad) => { im.onload = ok; im.onerror = bad; im.src = url; });
+    const w = im.naturalWidth, h = im.naturalHeight, s = Math.min(1, HI_MAX / Math.max(w, h));
+    photoC.width = Math.round(w * s); photoC.height = Math.round(h * s);
+    photoC.getContext('2d').drawImage(im, 0, 0, photoC.width, photoC.height);
+    im.src = ''; return photoC;
+  } finally { URL.revokeObjectURL(url); }
+}
+async function onPhoto(file){
+  if (!file) return;
+  if (!DB.quizzes.length) return toast('Create a quiz first', true);
+  hint('Reading photo…');
+  let img, w, h;
+  try{ img = await shrinkPhoto(file); w = img.width; h = img.height; }
+  catch(e){ hint(''); toast('Couldn\'t open that photo. Try again or pick it from Photos.', true); return; }
+  if (S.running) camStop();
+  const s = Math.min(1, LO_MAX / Math.max(w, h)), lw = Math.round(w * s), lh = Math.round(h * s);
+  sizeCanvases(lw, lh); camCtx.drawImage(img, 0, 0, lw, lh);
+  $('#ph').style.display = 'none';
+  const A = analyze(img, w, h);
+  if (A.err){
+    S.pending = null; renderLast();
+    if (A.err === 'format'){ drawOverlay(A.det, null, null); hint(formatMsg(A.det.fmt, A.q)); toast('Sheet doesn\'t match the selected quiz', true); }
+    else { clearOverlay(); hint('Couldn\'t find the 4 corner squares — retake closer, flat, with even light'); beep(false); }
+    return;
+  }
+  drawOverlay(A.det, A.res, A.q);
+  if (S.keyMode){ applyScannedKey(A); return; }
+  S.pending = {quizId: A.q.id, sid: A.res.sid, answers: A.res.answers};
+  hint('Check the marks, then Save');
+  renderLast();
+}
+S.photoSrc = 'photoIn';
+$('#photoIn').onchange = e => { const f = e.target.files[0]; e.target.value = ''; S.photoSrc = 'photoIn'; onPhoto(f); };
+$('#libIn').onchange = e => { const f = e.target.files[0]; e.target.value = ''; S.photoSrc = 'libIn'; onPhoto(f); };
+
+/* =================== results =================== */
+let resSort = 'sid';
+function renderResults(){
+  const v = $('#v-results');
+  if (!DB.quizzes.length){ v.innerHTML = '<div class="card empty">No quizzes yet.</div>'; return; }
+  const q = quizById(currentQuizId()), recs = sortedRecs(q);
+  const scores = recs.map(r => scoreOf(q, r.answers));
+  const avg = scores.length ? mean(scores.map(s => s.s)) : 0, tot = scores[0]?.t ?? q.key.filter(Boolean).length;
+  v.innerHTML = `<div class="row" style="margin-bottom:10px"><select id="resQuiz" style="flex:1">${quizOptions(q.id)}</select></div>
+    <div class="stats">
+      <div class="stat"><b>${recs.length}</b><span>sheets</span></div>
+      <div class="stat"><b>${recs.length ? avg.toFixed(1) : '–'}</b><span>average /${tot}</span></div>
+      <div class="stat"><b>${recs.length ? Math.max(...scores.map(s => s.s)) : '–'}</b><span>highest</span></div>
+      <div class="stat"><b>${recs.length ? Math.min(...scores.map(s => s.s)) : '–'}</b><span>lowest</span></div>
+    </div>
+    <div class="row" style="margin-bottom:12px">
+      <button class="btn sm pri" data-act="exportCSV" ${recs.length ? '' : 'disabled'}>Save as CSV (Excel)</button>
+      <button class="btn sm" data-act="printReport" ${recs.length ? '' : 'disabled'}>Print / PDF report</button>
+      <select id="resSort" style="width:auto;margin-left:auto;padding:6px 8px;font-size:13px">
+        ${[['sid', 'Sort: ID'], ['name', 'Sort: Name'], ['score', 'Sort: Score'], ['at', 'Sort: Latest']].map(([k, t]) => `<option value="${k}" ${resSort === k ? 'selected' : ''}>${t}</option>`).join('')}
+      </select>
+    </div>
+    ${q.key.filter(Boolean).length ? '' : '<div class="card small" style="border-color:var(--warn)">No answer key set yet — scores will show once you set it. Answers are already saved.</div>'}
+    <div class="card" style="padding:4px 8px">${recs.length ? `<table class="t"><thead><tr><th>Student</th><th>ID</th><th class="num">Score</th><th class="num">%</th></tr></thead><tbody>
+      ${recs.map((r, i) => { const sc = scores[i]; return `<tr class="click" data-act="openRec" data-id="${r.id}"><td>${esc(studentName(r)) || '<span class="muted">—</span>'}</td><td>${esc(r.sid || '—')}${sidOk(r.sid) ? '' : ' <span class="chip warn">?</span>'}</td><td class="num"><b>${sc.s}</b>/${sc.t}</td><td class="num">${sc.t ? sc.pct.toFixed(0) : '–'}</td></tr>`; }).join('')}
+      </tbody></table>` : '<div class="empty">No scanned sheets for this quiz yet.</div>'}</div>
+    ${recs.length && q.key.some(Boolean) ? itemAnalysisHTML(q, recs) : ''}`;
+  $('#resQuiz').onchange = e => { setCurrentQuiz(e.target.value); renderResults(); };
+  $('#resSort').onchange = e => { resSort = e.target.value; renderResults(); };
+}
+function sortedRecs(q){
+  const recs = resultsFor(q.id);
+  const f = {sid: (a, b) => (a.sid || '').localeCompare(b.sid || '', undefined, {numeric: true}),
+    name: (a, b) => (studentName(a) || '~').localeCompare(studentName(b) || '~'),
+    score: (a, b) => scoreOf(q, b.answers).s - scoreOf(q, a.answers).s,
+    at: (a, b) => b.at - a.at}[resSort];
+  return recs.sort(f);
+}
+function itemStats(q, recs){
+  return Array.from({length: q.n}, (_, i) => {
+    const cnt = {}; let ok = 0, blank = 0, multi = 0;
+    recs.forEach(r => { const a = r.answers[i] || ''; if (!a) blank++; else if (a === '*') multi++; else cnt[a] = (cnt[a] || 0) + 1; if (isRight(q, i, a)) ok++; });
+    return {i, key: q.key[i] || '', ok, pct: recs.length ? ok / recs.length * 100 : 0, cnt, blank, multi};
+  });
+}
+function itemAnalysisHTML(q, recs){
+  const st = itemStats(q, recs).filter(s => s.key);
+  return `<h2 style="margin-top:18px">Item analysis</h2><div class="card" style="padding:4px 8px"><table class="t"><thead><tr><th>#</th><th>Key</th><th>% correct</th><th>Most picked wrong</th></tr></thead><tbody>
+    ${st.map(s => { const wrongs = Object.entries(s.cnt).filter(([l]) => !s.key.includes(l)).sort((a, b) => b[1] - a[1]); return `<tr><td>${s.i + 1}</td><td><b>${s.key}</b></td><td><div class="row" style="flex-wrap:nowrap"><div class="bar" style="flex:1"><i class="${s.pct < 50 ? 'lo' : ''}" style="width:${s.pct}%"></i></div><span class="small" style="width:34px;text-align:right">${s.pct.toFixed(0)}%</span></div></td><td class="small">${wrongs.length ? `${wrongs[0][0]} (${wrongs[0][1]})` : '—'}${s.blank ? ` · blank ${s.blank}` : ''}</td></tr>`; }).join('')}
+    </tbody></table></div>`;
+}
+function openRec(id){
+  const r = DB.results.find(x => x.id === id); if (!r) return;
+  const q = quizById(r.quizId); modalState = {type: 'rec', id};
+  const sc = scoreOf(q, r.answers);
+  openModal(`<div class="mh"><h2>${sc.s}/${sc.t} <span class="muted small">${sc.t ? sc.pct.toFixed(0) + '%' : ''}</span></h2><button class="btn sm" onclick="closeModal();refresh()">Close</button></div>
+    <div class="grid2">
+      <label class="f"><span>Student ID</span><input id="rSid" value="${esc(r.sid)}" inputmode="numeric"></label>
+      <label class="f"><span>Name ${DB.roster[r.sid] ? '(from roster)' : ''}</span><input id="rName" value="${esc(r.name || '')}" placeholder="${esc(DB.roster[r.sid] || 'Optional')}"></label>
+    </div>
+    <div class="small muted" style="margin-bottom:8px">${esc(q.name)} · scanned ${fmtTime(r.at)} · fix a misread by changing the letter</div>
+    <div class="agrid" id="agrid"></div>
+    <div class="row" style="margin-top:14px"><button class="btn danger" data-act="delRec" data-id="${r.id}">Delete this result</button></div>`);
+  drawAnsGrid();
+  $('#rSid').onchange = e => { r.sid = e.target.value.trim(); persist(); };
+  $('#rName').onchange = e => { r.name = e.target.value.trim(); persist(); };
+}
+function drawAnsGrid(){
+  const r = DB.results.find(x => x.id === modalState.id), q = quizById(r.quizId);
+  const opts = ['', ...LETTERS.slice(0, q.choices).split(''), '*'];
+  $('#agrid').innerHTML = Array.from({length: q.n}, (_, i) => {
+    const a = r.answers[i] || '', k = q.key[i] || '';
+    return `<div class="acell ${k ? (isRight(q, i, a) ? 'ok' : 'no') : ''}"><span class="n">${i + 1}</span><select data-i="${i}">${opts.map(o => `<option value="${o}" ${o === a ? 'selected' : ''}>${o === '' ? '–' : o === '*' ? '2+' : o}</option>`).join('')}</select><span class="k">${k ? 'key ' + k : ''}</span></div>`;
+  }).join('');
+  $('#agrid').onchange = e => {
+    const i = +e.target.dataset.i; r.answers[i] = e.target.value; r.edited = true; persist();
+    drawAnsGrid(); const sc = scoreOf(q, r.answers);
+    $('#mbox .mh h2').innerHTML = `${sc.s}/${sc.t} <span class="muted small">${sc.t ? sc.pct.toFixed(0) + '%' : ''}</span>`;
+  };
+}
+function refresh(){ if (tab === 'results') renderResults(); else if (tab === 'scan') renderLast(); else if (tab === 'quizzes') renderQuizzes(); }
+
+function csvFor(q){
+  const recs = sortedRecs(q), cell = v => { v = String(v ?? ''); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
+  const head = ['Student ID', 'Name', 'Score', 'Total', 'Percent', 'Scanned at', ...Array.from({length: q.n}, (_, i) => 'Q' + (i + 1))];
+  const rows = [head, ['KEY', '', '', '', '', '', ...q.key]];
+  recs.forEach(r => {
+    const sc = scoreOf(q, r.answers);
+    rows.push([r.sid, studentName(r), sc.s, sc.t, sc.t ? sc.pct.toFixed(1) : '', new Date(r.at).toLocaleString(), ...Array.from({length: q.n}, (_, i) => r.answers[i] === '*' ? 'MULTI' : (r.answers[i] || ''))]);
+  });
+  return '﻿' + rows.map(r => r.map(cell).join(',')).join('\r\n');
+}
+async function exportCSV(){
+  const q = quizById(currentQuizId()), name = fname(q.name) + '_results.csv', text = csvFor(q);
+  if (/Android|iPhone|iPad/i.test(navigator.userAgent) && await shareFile(name, text, 'text/csv')) return;
+  download(name, text, 'text/csv'); toast('CSV saved to Downloads');
+}
+function printReport(){
+  const q = quizById(currentQuizId());
+  openModal(`<div class="mh"><h2>Print report</h2><button class="btn sm" onclick="closeModal()">Close</button></div>
+    <label class="toggle" style="display:flex;margin-bottom:10px"><input type="checkbox" id="pItems" checked> Item analysis</label>
+    <label class="toggle" style="display:flex;margin-bottom:14px"><input type="checkbox" id="pAns"> Each student's answers (wrong ones underlined)</label>
+    <p class="small muted">Tip: in the print window choose "Save as PDF" to keep a file.</p>
+    <button class="btn pri" data-act="doPrintReport">Print</button>`);
+}
+function doPrintReport(){
+  const q = quizById(currentQuizId()), recs = sortedRecs(q), items = $('#pItems').checked, ans = $('#pAns').checked;
+  const scores = recs.map(r => scoreOf(q, r.answers)), tot = scores[0]?.t ?? 0;
+  const avg = scores.length ? mean(scores.map(s => s.s)) : 0;
+  let h = `<div class="rep"><h1>${esc(q.name)}</h1><div>${fmtLabel(q)} · ${recs.length} sheets · average ${avg.toFixed(2)} / ${tot} · printed ${new Date().toLocaleString()}</div>
+    <h2>Scores</h2><table><thead><tr><th>#</th><th>Student ID</th><th>Name</th><th class="num">Score</th><th class="num">%</th></tr></thead><tbody>
+    ${recs.map((r, i) => `<tr><td>${i + 1}</td><td>${esc(r.sid)}</td><td>${esc(studentName(r))}</td><td class="num">${scores[i].s} / ${scores[i].t}</td><td class="num">${scores[i].t ? scores[i].pct.toFixed(1) : ''}</td></tr>`).join('')}
+    </tbody></table>`;
+  if (items){
+    const st = itemStats(q, recs).filter(s => s.key), letters = LETTERS.slice(0, q.choices).split('');
+    h += `<h2>Item analysis</h2><table><thead><tr><th>Item</th><th>Key</th><th class="num">% correct</th>${letters.map(l => `<th class="num">${l}</th>`).join('')}<th class="num">Blank</th><th class="num">2+</th></tr></thead><tbody>
+      ${st.map(s => `<tr><td>${s.i + 1}</td><td>${s.key}</td><td class="num">${s.pct.toFixed(0)}%</td>${letters.map(l => `<td class="num" style="${s.key.includes(l) ? 'font-weight:bold' : ''}">${s.cnt[l] || 0}</td>`).join('')}<td class="num">${s.blank}</td><td class="num">${s.multi}</td></tr>`).join('')}</tbody></table>`;
+  }
+  if (ans){
+    h += `<h2>Student answers</h2><div style="font-size:9pt;margin-bottom:2mm">Key: <span class="ans">${q.key.map(k => k || '·').join('')}</span> · "·" blank, "#" double-marked</div><table><tbody>
+      ${recs.map(r => `<tr><td style="width:28mm">${esc(r.sid)}<br>${esc(studentName(r))}</td><td class="ans">${Array.from({length: q.n}, (_, i) => { const a = r.answers[i] || '', c = a === '*' ? '#' : (a || '·'); return (q.key[i] && !isRight(q, i, a)) ? `<span class="x">${c}</span>` : c; }).map((c, i) => (i && i % 10 === 0 ? ' ' : '') + c).join('')}</td></tr>`).join('')}
+      </tbody></table>`;
+  }
+  h += '</div>';
+  closeModal(); printHTML(h);
+}
+
+/* =================== more: roster & data =================== */
+function renderMore(){
+  const ros = Object.entries(DB.roster).map(([id, n]) => `${id}, ${n}`).join('\n');
+  $('#v-more').innerHTML = `<h2>Class roster</h2>
+    <div class="card"><div class="small muted" style="margin-bottom:6px">One student per line: <b>ID, Name</b>. Paste from Excel (tab-separated works too). Names show up in results and exports.</div>
+      <textarea id="roster" placeholder="2023104512, Dela Cruz, Juan&#10;2023104513, Santos, Maria">${esc(ros)}</textarea>
+      <div class="row" style="margin-top:8px"><button class="btn pri sm" data-act="saveRoster">Save roster</button><button class="btn sm" data-act="importRoster">Import CSV file</button><span class="small muted">${Object.keys(DB.roster).length} students</span></div></div>
+    <h2>Scan settings</h2>
+    <div class="card"><label class="f" style="margin:0"><span>Mark sensitivity</span><select id="thSel">
+      <option value="0.25" ${DB.settings.th == 0.25 ? 'selected' : ''}>Normal</option>
+      <option value="0.18" ${DB.settings.th == 0.18 ? 'selected' : ''}>High — very light pencil marks</option>
+      <option value="0.38" ${DB.settings.th == 0.38 ? 'selected' : ''}>Low — ignore faint erasures</option></select></label></div>
+    <h2>Backup</h2>
+    <div class="card"><div class="small muted" style="margin-bottom:8px">Everything is stored only in this browser on this device. Download a backup now and then — clearing browser data deletes it.${storageOK ? '' : ' <b style="color:var(--bad)">Saving is currently failing here.</b>'}</div>
+      <div class="row"><button class="btn sm pri" data-act="backup">Download backup</button><button class="btn sm" data-act="restore">Restore backup</button><button class="btn sm danger" data-act="wipe" style="margin-left:auto">Erase all data</button></div></div>
+    <h2>How to use</h2>
+    <div class="card help"><ol>
+      <li><b>Quizzes → New quiz.</b> Set items, choices, how many ID digits your students write, and sheet size.</li>
+      <li><b>Answer key.</b> Tap the letters, type them in quick entry, or fill one sheet with the right answers and use "Scan key from paper".</li>
+      <li><b>Print sheets</b> on A4 or short bond. Keep the 4 black corner squares and the little code strip at the top clear — don't staple or write on them.</li>
+      <li><b>Scan.</b> Start the camera and hold the phone above the sheet until it beeps. With Auto-save on, just swap to the next sheet. Rescanning the same student ID replaces the old result.</li>
+      <li><b>Results.</b> Tap a student to fix a misread. Save as CSV for Excel/Google Sheets, or Print / PDF report.</li>
+    </ol>
+    <p><b>Tips:</b> flat sheet, even light, no hard shadows across bubbles. Use "Flash" in dim rooms. If the live camera won't open (some phones block it for files opened offline), use <b>Photo</b> — it takes a picture with the camera app and grades that.</p>
+    <p class="small muted">Works fully offline. Save this file to your phone/laptop and open it in Chrome, Edge or Safari.</p></div>`;
+  $('#thSel').onchange = e => { DB.settings.th = +e.target.value; persist(); toast('Saved'); };
+}
+function parseRoster(text){
+  const out = {};
+  text.split(/\r?\n/).forEach(line => {
+    const m = line.replace(/^﻿/, '').match(/^\s*"?([0-9A-Za-z\-]+)"?\s*[,\t;]\s*(.+?)\s*$/);
+    if (m && !/^(id|student)/i.test(m[1])) out[m[1].replace(/-/g, '')] = m[2].replace(/^"|"$/g, '').replace(/"\s*[,\t;]\s*"/g, ', ').replace(/\t/g, ' ').trim();
+  });
+  return out;
+}
+let fileAction = null;
+$('#fileIn').onchange = async e => {
+  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+  const text = await f.text();
+  if (fileAction === 'roster'){ $('#roster').value = text; toast('Loaded — check it, then Save roster'); }
+  if (fileAction === 'restore'){
+    try{
+      const d = JSON.parse(text);
+      if (!Array.isArray(d.quizzes) || !Array.isArray(d.results)) throw 0;
+      if (!confirm(`Restore ${d.quizzes.length} quizzes and ${d.results.length} results? This replaces what's here.`)) return;
+      DB = {...blankDB(), ...d, settings: {...blankDB().settings, ...(d.settings || {})}}; persist(); toast('Backup restored'); renderMore();
+    }catch(err){ toast('That file is not a BubbleCheck backup', true); }
+  }
+};
+
+/* =================== actions =================== */
+document.addEventListener('click', e => {
+  const el = e.target.closest('[data-act]'); if (!el) return;
+  const id = el.dataset.id, act = el.dataset.act;
+  switch (act){
+    case 'newQuiz': quizForm(); break;
+    case 'editQuiz': quizForm(quizById(id)); break;
+    case 'saveQuiz': saveQuizForm(id); break;
+    case 'dupQuiz': { const q = quizById(id), c = {...q, id: uid(), name: q.name + ' (copy)', key: [...q.key], created: Date.now()}; DB.quizzes.push(c); persist(); closeModal(); renderQuizzes(); toast('Duplicated'); break; }
+    case 'delQuiz': { const q = quizById(id), n = resultsFor(id).length; if (!confirm(`Delete "${q.name}"${n ? ` and its ${n} results` : ''}?`)) return; DB.quizzes = DB.quizzes.filter(z => z.id !== id); DB.results = DB.results.filter(r => r.quizId !== id); persist(); closeModal(); renderQuizzes(); break; }
+    case 'editKey': keyEditor(id); break;
+    case 'kb': {
+      const q = quizById(modalState.id), i = +el.dataset.i, L = el.dataset.l; let k = q.key[i] || '';
+      if (k.includes(L)) k = k.replace(L, ''); else k = modalState.multi ? (k + L).split('').sort().join('') : L;
+      q.key[i] = k; persist(); drawKeyGrid(); break;
+    }
+    case 'keyTxt': {
+      const q = quizById(modalState.id), s = $('#keyTxt').value.toUpperCase().replace(/[^A-E]/g, '');
+      const ok = LETTERS.slice(0, q.choices);
+      if ([...s].some(c => !ok.includes(c))) return toast(`Only ${ok.split('').join(', ')} allowed`, true);
+      [...s].slice(0, q.n).forEach((c, i) => q.key[i] = c); persist(); drawKeyGrid(); toast(`${Math.min(s.length, q.n)} items set`); break;
+    }
+    case 'keyClear': { if (!confirm('Clear the whole key?')) return; const q = quizById(modalState.id); q.key = Array(q.n).fill(''); persist(); drawKeyGrid(); break; }
+    case 'keyScan': setCurrentQuiz(id); S.keyMode = id; closeModal(); show('scan'); break;
+    case 'cancelKeyMode': S.keyMode = null; $('#keyModeBanner').style.display = 'none'; break;
+    case 'printSheets': printSheets(id); break;
+    case 'doPrintSheets': doPrintSheets(id); break;
+    case 'goScan': setCurrentQuiz(id); show('scan'); break;
+    case 'goResults': setCurrentQuiz(id); show('results'); break;
+    case 'camStart': camStart(); break;
+    case 'camStop': camStop(); break;
+    case 'torch': toggleTorch(); break;
+    case 'snap': $('#photoIn').click(); break;
+    case 'lib': $('#libIn').click(); break;
+    case 'savePending': savePending(false); if (!S.running) hint(''); break;
+    case 'saveNext': savePending(false); hint(''); $('#' + S.photoSrc).click(); break;
+    case 'retake': S.pending = null; S.stableN = 0; S.frozenUntil = 0; renderLast(); clearOverlay(); hint(S.running ? 'Fit all 4 corner squares in view' : ''); if (!S.running){ $('#ph').style.display = ''; $('#' + S.photoSrc).click(); } break;
+    case 'openRec': openRec(id); break;
+    case 'undoRec': case 'delRec': {
+      if (act === 'delRec' && !confirm('Delete this result?')) return;
+      DB.results = DB.results.filter(r => r.id !== id); persist();
+      if (S.last_rec === id){ S.last_rec = null; S.lastSavedSid = null; S.session = Math.max(0, S.session - (act === 'undoRec' ? 1 : 0)); S.armed = true; }
+      if (act === 'delRec') closeModal(); toast('Removed'); updateSession(); refresh(); break;
+    }
+    case 'exportCSV': exportCSV(); break;
+    case 'printReport': printReport(); break;
+    case 'doPrintReport': doPrintReport(); break;
+    case 'saveRoster': DB.roster = parseRoster($('#roster').value); persist(); toast(`${Object.keys(DB.roster).length} students saved`); renderMore(); break;
+    case 'importRoster': fileAction = 'roster'; $('#fileIn').accept = '.csv,.txt,text/csv,text/plain'; $('#fileIn').click(); break;
+    case 'backup': download(`bubblecheck_backup_${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(DB), 'application/json'); break;
+    case 'restore': fileAction = 'restore'; $('#fileIn').accept = '.json,application/json'; $('#fileIn').click(); break;
+    case 'wipe': if (confirm('Erase ALL quizzes, results and roster on this device?') && confirm('Really erase everything? This can\'t be undone.')){ DB = blankDB(); persist(); renderMore(); toast('Erased'); } break;
+  }
+});
+
+/* test hook */
+window.BubbleCheck = {layout, sheetSVG, detectSheet, gradeSheet, toGray, codeBits, parseCode, scoreOf, get DB(){ return DB; }, analyzeImage: async (url, q) => {
+  const im = await new Promise((ok, bad) => { const i = new Image(); i.onload = () => ok(i); i.onerror = bad; i.src = url; });
+  const w = im.naturalWidth, h = im.naturalHeight, s = Math.min(1, LO_MAX / Math.max(w, h));
+  sizeCanvases(Math.round(w * s), Math.round(h * s)); camCtx.drawImage(im, 0, 0, cam.width, cam.height);
+  if (q){ DB.quizzes = DB.quizzes.filter(z => z.id !== q.id); DB.quizzes.push(q); setCurrentQuiz(q.id); }
+  const A = analyze(im, w, h); return A.err ? {err: A.err, fmt: A.det && A.det.fmt} : {sid: A.res.sid, answers: A.res.answers};
+}};
+
+show(DB.quizzes.length ? 'quizzes' : 'quizzes');
+
+/* offline support when served over https */
+if ('serviceWorker' in navigator && location.protocol.startsWith('http')){
+  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+}
+</script>
+</body>
+</html>
